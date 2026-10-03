@@ -7,7 +7,7 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { label: "Live Map", href: "/", icon: Map },
+  { label: "Live Map", href: "/dashboard", icon: Map },
   { label: "Sensor Nodes", href: "/sensor-nodes", icon: Radio },
   { label: "Alert Log", href: "/alerts", icon: Bell },
   { label: "Reports", href: "/reports", icon: FileText },
@@ -15,7 +15,6 @@ export const NAV_ITEMS: NavItem[] = [
 ];
 
 export function isNavActive(pathname: string, href: string): boolean {
-  if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(href + "/");
 }
 
