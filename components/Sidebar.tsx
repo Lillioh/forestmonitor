@@ -25,7 +25,7 @@ export default function Sidebar() {
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = isNavActive(pathname, item.href);
-          const badge = item.href === "/" && newAlertCount > 0 ? newAlertCount : null;
+          const badge = item.href === "/dashboard" && newAlertCount > 0 ? newAlertCount : null;
 
           return (
             <Link
