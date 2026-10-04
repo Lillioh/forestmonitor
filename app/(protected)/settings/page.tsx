@@ -7,11 +7,24 @@ import { OUTPOST } from "@/lib/mock-data";
 import type { DispatchTeam } from "@/lib/types";
 import { useState } from "react";
 
-const CHANNELS = ["SMS Gateway", "Email Report", "VHF Radio Broadcast", "Mobile Push Alert"];
+const CHANNELS = [
+  "SMS Gateway",
+  "Email Report",
+  "VHF Radio Broadcast",
+  "Mobile Push Alert",
+];
 
 export default function SettingsPage() {
-  const { alerts, teams, setTeams, sensors, simRunning, toggleSimulation, triggerDetection, resetSimulation } =
-    useAlerts();
+  const {
+    alerts,
+    teams,
+    setTeams,
+    sensors,
+    simRunning,
+    toggleSimulation,
+    triggerDetection,
+    resetSimulation,
+  } = useAlerts();
 
   const [outpostName, setOutpostName] = useState(OUTPOST.name);
   const [location, setLocation] = useState(OUTPOST.location);
@@ -25,7 +38,9 @@ export default function SettingsPage() {
   ]);
   const [escalationTimeout, setEscalationTimeout] = useState(10);
   const [retention, setRetention] = useState("90 days");
-  const [exportFormat, setExportFormat] = useState<"CSV" | "JSON" | "GeoJSON">("CSV");
+  const [exportFormat, setExportFormat] = useState<
+    "CSV" | "JSON" | "GeoJSON"
+  >("CSV");
   const [autoExport, setAutoExport] = useState(true);
   const [newTeamName, setNewTeamName] = useState("");
   const [toast, setToast] = useState<string | null>(null);
@@ -37,13 +52,17 @@ export default function SettingsPage() {
 
   function toggleChannel(channel: string) {
     setActiveChannels((prev) =>
-      prev.includes(channel) ? prev.filter((c) => c !== channel) : [...prev, channel]
+      prev.includes(channel)
+        ? prev.filter((c) => c !== channel)
+        : [...prev, channel]
     );
   }
 
   function addTeam() {
     const name = newTeamName.trim();
+
     if (!name) return;
+
     const team: DispatchTeam = {
       id: `team-${Date.now()}`,
       name,
@@ -57,6 +76,7 @@ export default function SettingsPage() {
       channel: "Radio Mesh",
       status: "STANDBY",
     };
+
     setTeams((prev) => [...prev, team]);
     setNewTeamName("");
     showToast(`${name} added to dispatch teams`);
@@ -74,13 +94,19 @@ export default function SettingsPage() {
               type: "FeatureCollection",
               features: alerts.map((a) => ({
                 type: "Feature",
-                geometry: { type: "Point", coordinates: [a.lng, a.lat] },
+                geometry: {
+                  type: "Point",
+                  coordinates: [a.lng, a.lat],
+                },
                 properties: a,
               })),
             }
           : { sensors, alerts };
+
       downloadTextFile(
-        `forest-outpost-export.${exportFormat === "GeoJSON" ? "geojson" : "json"}`,
+        `forest-outpost-export.${
+          exportFormat === "GeoJSON" ? "geojson" : "json"
+        }`,
         JSON.stringify(payload, null, 2),
         "application/json"
       );
@@ -92,16 +118,27 @@ export default function SettingsPage() {
         status: a.status,
         zone: a.zone,
       }));
-      downloadTextFile("forest-outpost-export.csv", alertsToCsv(rows), "text/csv");
+
+      downloadTextFile(
+        "forest-outpost-export.csv",
+        alertsToCsv(rows),
+        "text/csv"
+      );
     }
+
     showToast("Export started — check your downloads");
   }
 
   return (
     <div className="space-y-5 p-5">
       <div>
-        <p className="text-xs font-semibold tracking-wider text-gray-400">SETTINGS</p>
-        <p className="text-[10px] text-gray-600">System Configuration · {outpostName}</p>
+        <p className="text-xs font-semibold tracking-wider text-[var(--text-muted)]">
+          SETTINGS
+        </p>
+
+        <p className="text-[10px] text-[var(--text-muted)]">
+          System Configuration · {outpostName}
+        </p>
       </div>
 
       <Panel title="General System Details">
@@ -113,9 +150,15 @@ export default function SettingsPage() {
               className="input"
             />
           </Field>
+
           <Field label="Timezone">
-            <input value={OUTPOST.timezone} readOnly className="input opacity-60" />
+            <input
+              value={OUTPOST.timezone}
+              readOnly
+              className="input opacity-60"
+            />
           </Field>
+
           <Field label="Location">
             <input
               value={location}
@@ -123,8 +166,13 @@ export default function SettingsPage() {
               className="input"
             />
           </Field>
+
           <Field label="Language">
-            <select value="English" disabled className="input opacity-60">
+            <select
+              value="English"
+              disabled
+              className="input opacity-60"
+            >
               <option>English</option>
             </select>
           </Field>
@@ -144,6 +192,7 @@ export default function SettingsPage() {
               <option>Zigbee 2.4GHz</option>
             </select>
           </Field>
+
           <Field label="Error Radius Threshold (m)">
             <input
               type="number"
@@ -152,6 +201,7 @@ export default function SettingsPage() {
               className="input"
             />
           </Field>
+
           <Field label="Sync Interval (s)">
             <input
               type="number"
@@ -165,24 +215,32 @@ export default function SettingsPage() {
 
       <Panel title="Alert Configuration">
         <div className="mb-4 flex items-center justify-between">
-          <span className="text-[11px] text-gray-300">Auto dispatch on High Confidence</span>
-          <Toggle checked={autoDispatch} onChange={setAutoDispatch} />
+          <span className="text-[11px] text-[var(--text)]">
+            Auto dispatch on High Confidence
+          </span>
+
+          <Toggle
+            checked={autoDispatch}
+            onChange={setAutoDispatch}
+          />
         </div>
 
-        <p className="mb-2 text-[10px] uppercase tracking-wider text-gray-600">
+        <p className="mb-2 text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
           Active Notification Channels
         </p>
+
         <div className="mb-4 flex flex-wrap gap-2">
           {CHANNELS.map((channel) => {
             const active = activeChannels.includes(channel);
+
             return (
               <button
                 key={channel}
                 onClick={() => toggleChannel(channel)}
                 className={`rounded-full border px-3 py-1.5 text-[10px] transition ${
                   active
-                    ? "border-[#62b66d]/50 bg-[#62b66d]/15 text-[#8fd497]"
-                    : "border-[#24332a] text-gray-500 hover:border-[#3a4d40]"
+                    ? "border-[color-mix(in_srgb,var(--status-online)_50%,transparent)] bg-[color-mix(in_srgb,var(--status-online)_15%,transparent)] text-[var(--status-online)]"
+                    : "border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-muted)]"
                 }`}
               >
                 {channel}
@@ -195,7 +253,9 @@ export default function SettingsPage() {
           <input
             type="number"
             value={escalationTimeout}
-            onChange={(e) => setEscalationTimeout(Number(e.target.value))}
+            onChange={(e) =>
+              setEscalationTimeout(Number(e.target.value))
+            }
             className="input w-32"
           />
         </Field>
@@ -204,7 +264,7 @@ export default function SettingsPage() {
       <Panel title="Dispatch Teams">
         <table className="w-full text-left text-[11px]">
           <thead>
-            <tr className="text-[9px] uppercase tracking-wider text-gray-600">
+            <tr className="text-[9px] uppercase tracking-wider text-[var(--text-muted)]">
               <th className="py-2 font-medium">Team Name</th>
               <th className="py-2 font-medium">Members</th>
               <th className="py-2 font-medium">Contact Channel</th>
@@ -212,29 +272,43 @@ export default function SettingsPage() {
               <th className="py-2 font-medium" />
             </tr>
           </thead>
+
           <tbody>
             {teams.map((team) => (
-              <tr key={team.id} className="border-t border-[#1b2620]">
-                <td className="py-2 text-gray-200">{team.name}</td>
-                <td className="py-2 text-gray-400">{team.members} rangers</td>
-                <td className="py-2 text-gray-400">{team.channel}</td>
+              <tr
+                key={team.id}
+                className="border-t border-[var(--border)]"
+              >
+                <td className="py-2 text-[var(--text)]">
+                  {team.name}
+                </td>
+
+                <td className="py-2 text-[var(--text-muted)]">
+                  {team.members} rangers
+                </td>
+
+                <td className="py-2 text-[var(--text-muted)]">
+                  {team.channel}
+                </td>
+
                 <td className="py-2">
                   <span
                     className={`rounded px-2 py-0.5 text-[9px] font-bold ${
                       team.status === "ACTIVE"
-                        ? "bg-[#62b66d]/15 text-[#8fd497]"
+                        ? "bg-[color-mix(in_srgb,var(--status-online)_15%,transparent)] text-[var(--status-online)]"
                         : team.status === "STANDBY"
-                          ? "bg-[#e7a52c]/15 text-[#e7a52c]"
-                          : "bg-gray-600/15 text-gray-500"
+                          ? "bg-[color-mix(in_srgb,var(--status-warning)_15%,transparent)] text-[var(--status-warning)]"
+                          : "bg-[color-mix(in_srgb,var(--text-muted)_15%,transparent)] text-[var(--text-muted)]"
                     }`}
                   >
                     {team.status}
                   </span>
                 </td>
+
                 <td className="py-2 text-right">
                   <button
                     onClick={() => removeTeam(team.id)}
-                    className="text-[9px] text-gray-600 hover:text-[#e46a52]"
+                    className="text-[9px] text-[var(--text-muted)] hover:text-[#e46a52]"
                   >
                     Remove
                   </button>
@@ -248,13 +322,16 @@ export default function SettingsPage() {
           <input
             value={newTeamName}
             onChange={(e) => setNewTeamName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addTeam()}
+            onKeyDown={(e) =>
+              e.key === "Enter" && addTeam()
+            }
             placeholder="New team name..."
             className="input flex-1"
           />
+
           <button
             onClick={addTeam}
-            className="rounded bg-[#e6a52d] px-4 py-2 text-[10px] font-bold text-black hover:bg-[#f0b63c]"
+            className="rounded bg-[var(--accent)] px-4 py-2 text-[10px] font-bold text-black hover:brightness-110"
           >
             + Add Team
           </button>
@@ -278,38 +355,47 @@ export default function SettingsPage() {
 
           <Field label="Default Export Format">
             <div className="flex gap-2">
-              {(["CSV", "JSON", "GeoJSON"] as const).map((fmt) => (
-                <button
-                  key={fmt}
-                  onClick={() => setExportFormat(fmt)}
-                  className={`rounded border px-3 py-1.5 text-[10px] ${
-                    exportFormat === fmt
-                      ? "border-[#e6a52d] bg-[#e6a52d]/15 text-[#f0b63c]"
-                      : "border-[#24332a] text-gray-500"
-                  }`}
-                >
-                  {fmt}
-                </button>
-              ))}
+              {(["CSV", "JSON", "GeoJSON"] as const).map(
+                (fmt) => (
+                  <button
+                    key={fmt}
+                    onClick={() => setExportFormat(fmt)}
+                    className={`rounded border px-3 py-1.5 text-[10px] ${
+                      exportFormat === fmt
+                        ? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] text-[var(--accent)]"
+                        : "border-[var(--border)] text-[var(--text-muted)]"
+                    }`}
+                  >
+                    {fmt}
+                  </button>
+                )
+              )}
             </div>
           </Field>
         </div>
 
         <div className="mt-4 flex items-center justify-between">
-          <span className="text-[11px] text-gray-300">Automated Daily Export</span>
-          <Toggle checked={autoExport} onChange={setAutoExport} />
+          <span className="text-[11px] text-[var(--text)]">
+            Automated Daily Export
+          </span>
+
+          <Toggle
+            checked={autoExport}
+            onChange={setAutoExport}
+          />
         </div>
 
         <div className="mt-4 flex gap-2">
           <button
             onClick={handleExportAll}
-            className="rounded bg-[#e6a52d] px-4 py-2 text-[10px] font-bold text-black hover:bg-[#f0b63c]"
+            className="rounded bg-[var(--accent)] px-4 py-2 text-[10px] font-bold text-black hover:brightness-110"
           >
             Export All Data
           </button>
+
           <button
             onClick={() => showToast("Local cache cleared")}
-            className="rounded border border-[#24332a] px-4 py-2 text-[10px] text-gray-400 hover:bg-[#19251e]"
+            className="rounded border border-[var(--border)] px-4 py-2 text-[10px] text-[var(--text-muted)] hover:bg-[var(--panel)]"
           >
             Clear Cache
           </button>
@@ -317,7 +403,7 @@ export default function SettingsPage() {
       </Panel>
 
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-md border border-[#24332a] bg-[#101a14] px-4 py-2 text-[11px] text-gray-200 shadow-lg">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-md border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-[11px] text-[var(--text)] shadow-lg">
           {toast}
         </div>
       )}
@@ -326,38 +412,67 @@ export default function SettingsPage() {
         .input {
           width: 100%;
           border-radius: 0.375rem;
-          border: 1px solid #24332a;
-          background: #0f1913;
+          border: 1px solid var(--border);
+          background: var(--panel);
           padding: 0.5rem 0.75rem;
           font-size: 11px;
-          color: #e5e7eb;
+          color: var(--text);
         }
+
+        .input::placeholder {
+          color: var(--text-muted);
+        }
+
         .input:focus {
           outline: none;
-          border-color: #3a4d40;
+          border-color: var(--accent);
+        }
+
+        .input:disabled,
+        .input[readonly] {
+          color: var(--text-muted);
+        }
+
+        .input option {
+          background: var(--panel);
+          color: var(--text);
         }
       `}</style>
     </div>
   );
 }
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+function Panel({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="rounded-lg border border-[#24332a] bg-[#101a14] p-4">
-      <p className="mb-4 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
+      <p className="mb-4 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
         {title}
       </p>
+
       {children}
     </div>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[9px] uppercase tracking-wider text-gray-600">
+      <span className="mb-1 block text-[9px] uppercase tracking-wider text-[var(--text-muted)]">
         {label}
       </span>
+
       {children}
     </label>
   );

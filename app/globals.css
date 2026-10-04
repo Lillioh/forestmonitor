@@ -1,26 +1,89 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ================================
+   FOREST MONITOR THEME
+   ================================ */
+
 :root {
-  background: #0b120f;
-  color: white;
+  /* Main backgrounds */
+  --background: #e9eeeb;
+  --panel: #e1e7e3;
+  --card: #f3f6f4;
+
+  /* Borders */
+  --border: #cbd5cf;
+
+  /* Text */
+  --text: #172019;
+  --text-muted: #647067;
+
+  /* Accent */
+  --accent: #c58b18;
+
+  /* Status */
+  --status-online: #5d9f63;
+  --status-warning: #d69a24;
 }
+
+html.dark {
+  /* Main backgrounds */
+  --background: #0b120f;
+  --panel: #0d1712;
+  --card: #111c16;
+
+  /* Borders */
+  --border: #1e2b24;
+
+  /* Text */
+  --text: #ffffff;
+  --text-muted: #829087;
+
+  /* Accent */
+  --accent: #e6a52d;
+
+  /* Status */
+  --status-online: #78bd7b;
+  --status-warning: #e9a52e;
+}
+
+/* ================================
+   GLOBAL
+   ================================ */
 
 * {
   box-sizing: border-box;
 }
 
+/* Smooth light/dark theme transitions */
 html,
-body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
+body,
+body * {
+  transition:
+    background-color 220ms ease,
+    border-color 220ms ease,
+    color 180ms ease;
 }
 
-body {
-  background: #0b120f;
-  font-family: Arial, Helvetica, sans-serif;
+/* Prevent unnecessary animation during normal UI interactions */
+button,
+input,
+select,
+textarea {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    opacity 180ms ease,
+    box-shadow 180ms ease;
 }
 
-button {
-  cursor: pointer;
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  html,
+  body,
+  body * {
+    transition: none !important;
+  }
 }

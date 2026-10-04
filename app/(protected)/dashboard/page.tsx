@@ -9,16 +9,24 @@ export default function Home() {
   const { sensors } = useAlerts();
 
   return (
-    <div className="flex min-h-0 flex-1">
+    <div className="flex min-h-0 flex-1 bg-[var(--background)]">
+
+      {/* Main Dashboard Area */}
       <div className="flex min-w-0 flex-1 flex-col p-5">
+
+        {/* Detection Map Title */}
         <div className="mb-3">
-          <p className="text-xs font-semibold tracking-wider text-gray-400">DETECTION MAP</p>
+          <p className="text-xs font-semibold tracking-wider text-[var(--text-muted)]">
+            DETECTION MAP
+          </p>
         </div>
 
+        {/* Detection Map */}
         <div className="min-h-0 flex-1">
           <DetectionMap />
         </div>
 
+        {/* Sensor Cards */}
         <div className="mt-4 grid grid-cols-3 gap-4">
           {sensors.map((sensor) => (
             <SensorCard
@@ -32,7 +40,9 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Incident Feed */}
       <IncidentFeed />
+
     </div>
   );
 }

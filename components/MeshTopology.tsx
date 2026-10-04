@@ -8,19 +8,44 @@ const POSITIONS: Record<string, { x: number; y: number }> = {
 
 export default function MeshTopology() {
   return (
-    <div className="rounded-lg border border-[#24332a] bg-[#0f1913] p-4">
-      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
-        LoRa Mesh Topology <span className="text-gray-600">· Signal Link Quality (RSSI / SNR)</span>
+    <div
+      className="
+        rounded-lg
+        border border-[var(--border)]
+        bg-[var(--card)]
+        p-4
+      "
+    >
+      <p
+        className="
+          mb-2 text-[10px] font-semibold
+          uppercase tracking-wider
+          text-[var(--text-muted)]
+        "
+      >
+        LoRa Mesh Topology{" "}
+        <span className="text-[var(--text-muted)]">
+          · Signal Link Quality (RSSI / SNR)
+        </span>
       </p>
 
-      <svg viewBox="0 0 400 210" className="h-[190px] w-full">
+      <svg
+        viewBox="0 0 400 210"
+        className="h-[190px] w-full"
+      >
         {MESH_LINKS.map((link) => {
           const from = POSITIONS[link.from];
           const to = POSITIONS[link.to];
+
           const midX = (from.x + to.x) / 2;
           const midY = (from.y + to.y) / 2;
+
           const color =
-            link.quality >= 85 ? "#62b66d" : link.quality >= 70 ? "#e5a52d" : "#e46a52";
+            link.quality >= 85
+              ? "var(--status-online)"
+              : link.quality >= 70
+                ? "var(--status-warning)"
+                : "#e46a52";
 
           return (
             <g key={`${link.from}-${link.to}`}>
@@ -33,21 +58,23 @@ export default function MeshTopology() {
                 strokeWidth={Math.max(1, link.quality / 40)}
                 opacity={0.75}
               />
+
               <rect
                 x={midX - 20}
                 y={midY - 9}
                 width={40}
                 height={16}
                 rx={4}
-                fill="#0b120f"
-                stroke="#24332a"
+                fill="var(--background)"
+                stroke="var(--border)"
               />
+
               <text
                 x={midX}
                 y={midY + 3}
                 textAnchor="middle"
                 fontSize={9}
-                fill="#c9d6cd"
+                fill="var(--text)"
                 fontFamily="ui-monospace, monospace"
               >
                 {link.quality}%
@@ -58,20 +85,36 @@ export default function MeshTopology() {
 
         {INITIAL_SENSOR_NODES.map((node) => {
           const p = POSITIONS[node.id];
+
           return (
             <g key={node.id}>
-              <circle cx={p.x} cy={p.y} r={9} fill="#6da875" stroke="#0b120f" strokeWidth={2} />
+              <circle
+                cx={p.x}
+                cy={p.y}
+                r={9}
+                fill="var(--status-online)"
+                stroke="var(--background)"
+                strokeWidth={2}
+              />
+
               <text
                 x={p.x}
                 y={p.y - 16}
                 textAnchor="middle"
                 fontSize={11}
                 fontWeight={700}
-                fill="#e6ede8"
+                fill="var(--text)"
               >
                 {node.id}
               </text>
-              <text x={p.x} y={p.y + 24} textAnchor="middle" fontSize={9} fill="#829087">
+
+              <text
+                x={p.x}
+                y={p.y + 24}
+                textAnchor="middle"
+                fontSize={9}
+                fill="var(--text-muted)"
+              >
                 {node.role}
               </text>
             </g>
