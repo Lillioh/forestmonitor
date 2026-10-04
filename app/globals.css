@@ -56,6 +56,19 @@ html.dark {
   box-sizing: border-box;
 }
 
+/* Hide the overall page scrollbar
+   while keeping page scrolling enabled */
+html,
+body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
 /* Smooth light/dark theme transitions */
 html,
 body,

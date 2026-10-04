@@ -3,28 +3,61 @@
 import {
   AdvancedMarker,
   APIProvider,
+  Circle,
   Map,
+  Polygon,
   useMap,
 } from "@vis.gl/react-google-maps";
 import { useAlerts } from "@/context/AlertsContext";
 import { useEffect, useMemo } from "react";
 
+const TDOA_POINTS = [
+  {
+    id: "A",
+    lat: 8.460140,
+    lng: 124.700302,
+    label: "ESP32 Sensor A",
+  },
+  {
+    id: "B",
+    lat: 8.458825,
+    lng: 124.701397,
+    label: "ESP32 Sensor B",
+  },
+  {
+    id: "C",
+    lat: 8.460395,
+    lng: 124.701965,
+    label: "ESP32 Sensor C",
+  },
+];
+
 function MapBounds() {
   const map = useMap();
-  const { alerts, sensors } = useAlerts();
+  const { alerts } = useAlerts();
+
+  const activeAlerts = useMemo(
+    () =>
+      alerts.filter(
+        (alert) =>
+          alert.status !== "RESOLVED" &&
+          alert.status !== "FALSE_POSITIVE"
+      ),
+    [alerts]
+  );
 
   const locations = useMemo(
     () => [
-      ...sensors.map((sensor) => ({
-        lat: sensor.lat,
-        lng: sensor.lng,
+      ...TDOA_POINTS.map((point) => ({
+        lat: point.lat,
+        lng: point.lng,
       })),
-      ...alerts.map((alert) => ({
+      ...activeAlerts.map((alert) => ({
         lat: alert.lat,
         lng: alert.lng,
       })),
     ],
-    [sensors, alerts]
+    [activeAlerts]
   );
 
   useEffect(() => {
@@ -43,7 +76,17 @@ function MapBounds() {
 }
 
 export default function DetectionMap() {
-  const { alerts, sensors } = useAlerts();
+  const { alerts } = useAlerts();
+
+  const activeAlerts = useMemo(
+    () =>
+      alerts.filter(
+        (alert) =>
+          alert.status !== "RESOLVED" &&
+          alert.status !== "FALSE_POSITIVE"
+      ),
+    [alerts]
+  );
 
   return (
     <div className="h-[500px] w-full overflow-hidden rounded-xl">
@@ -52,36 +95,63 @@ export default function DetectionMap() {
       >
         <Map
           defaultCenter={{
-            lat: 8.4542,
-            lng: 124.6319,
+            lat: 8.4598,
+            lng: 124.7012,
           }}
-          defaultZoom={14}
+          defaultZoom={16}
           mapId="DEMO_MAP_ID"
         >
           <MapBounds />
 
-          {/* Sensor nodes */}
-          {sensors.map((sensor) => (
+          {/* TDoA triangulation area */}
+          <Polygon
+            paths={TDOA_POINTS.map((point) => ({
+              lat: point.lat,
+              lng: point.lng,
+            }))}
+            options={{
+              fillOpacity: 0.12,
+              strokeOpacity: 0.8,
+              strokeWeight: 2,
+            }}
+          />
+
+          {/* Simulated ESP32 sensor positions */}
+          {TDOA_POINTS.map((point) => (
             <AdvancedMarker
-              key={sensor.id}
+              key={point.id}
               position={{
-                lat: sensor.lat,
-                lng: sensor.lng,
+                lat: point.lat,
+                lng: point.lng,
               }}
-              title={`${sensor.name} — ${sensor.status}`}
+              title={point.label}
             />
           ))}
 
-          {/* Detections */}
-          {alerts.map((alert) => (
-            <AdvancedMarker
-              key={`alert-${alert.id}`}
-              position={{
-                lat: alert.lat,
-                lng: alert.lng,
-              }}
-              title={`${alert.classification} — ${alert.confidence}% confidence`}
-            />
+          {/* Active detections only */}
+          {activeAlerts.map((alert) => (
+            <div key={`detection-${alert.id}`}>
+              <Circle
+                center={{
+                  lat: alert.lat,
+                  lng: alert.lng,
+                }}
+                radius={alert.radiusM}
+                options={{
+                  fillOpacity: 0.12,
+                  strokeOpacity: 0.7,
+                  strokeWeight: 2,
+                }}
+              />
+
+              <AdvancedMarker
+                position={{
+                  lat: alert.lat,
+                  lng: alert.lng,
+                }}
+                title={`${alert.classification} — ${alert.confidence}% confidence`}
+              />
+            </div>
           ))}
         </Map>
       </APIProvider>

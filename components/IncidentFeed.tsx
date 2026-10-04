@@ -15,7 +15,6 @@ export default function IncidentFeed() {
   } = useAlerts();
 
   const now = useNow();
-  const visible = alerts.slice(0, 5);
 
   return (
     <aside
@@ -23,57 +22,73 @@ export default function IncidentFeed() {
         hidden w-[280px] shrink-0
         border-l border-[var(--border)]
         bg-[var(--panel)]
-        p-3 lg:block
+        lg:flex lg:flex-col
+        lg:h-[calc(100vh-56px)]
+        lg:overflow-hidden
       "
     >
       {/* Header */}
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-xs font-bold tracking-wide text-[var(--text)]">
-          INCIDENT FEED
-        </h2>
+      <div className="shrink-0 p-3 pb-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-bold tracking-wide text-[var(--text)]">
+            INCIDENT FEED
+          </h2>
 
-        <button
-          onClick={triggerDetection}
-          title="Manually simulate a new sensor detection (stand-in for the LoRa/Raspberry Pi feed, not yet connected)"
-          className="
-            rounded border border-[var(--border)]
-            px-2 py-1 text-[9px]
-            text-[var(--text-muted)]
-            transition
-            hover:bg-[var(--card)]
-            hover:text-[var(--text)]
-          "
-        >
-          + Simulate Ping
-        </button>
+          <button
+            onClick={triggerDetection}
+            title="Manually simulate a new sensor detection (stand-in for the LoRa/Raspberry Pi feed, not yet connected)"
+            className="
+              rounded border border-[var(--border)]
+              px-2 py-1 text-[9px]
+              text-[var(--text-muted)]
+              transition
+              hover:bg-[var(--card)]
+              hover:text-[var(--text)]
+            "
+          >
+            + Simulate Ping
+          </button>
+        </div>
       </div>
 
-      {/* Empty State */}
-      {visible.length === 0 ? (
-        <div
-          className="
-            rounded-md border border-dashed
-            border-[var(--border)]
-            p-4 text-center text-[10px]
-            text-[var(--text-muted)]
-          "
-        >
-          No detections yet. Waiting on the sensor mesh
-          <span className="animate-pulse">…</span>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {visible.map((incident) => (
-            <IncidentCard
-              key={incident.id}
-              incident={incident}
-              now={now}
-              onDispatch={() => dispatchAlert(incident.id)}
-              onResolve={() => markResolved(incident.id)}
-            />
-          ))}
-        </div>
-      )}
+      {/* Scrollable Incident List */}
+      <div
+        className="
+          min-h-0 flex-1
+          overflow-y-auto
+          overflow-x-hidden
+          px-3 pb-3
+          [scrollbar-width:none]
+          [-ms-overflow-style:none]
+          [&::-webkit-scrollbar]:hidden
+        "
+      >
+        {alerts.length === 0 ? (
+          <div
+            className="
+              rounded-md border border-dashed
+              border-[var(--border)]
+              p-4 text-center text-[10px]
+              text-[var(--text-muted)]
+            "
+          >
+            No detections yet. Waiting on the sensor mesh
+            <span className="animate-pulse">…</span>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {alerts.map((incident) => (
+              <IncidentCard
+                key={incident.id}
+                incident={incident}
+                now={now}
+                onDispatch={() => dispatchAlert(incident.id)}
+                onResolve={() => markResolved(incident.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </aside>
   );
 }
@@ -112,7 +127,6 @@ function IncidentCard({
     <div
       className={`
         rounded-md border p-3
-
         ${
           isNew
             ? "border-[#e45642] bg-[#f4e9e6] dark:bg-[#1c1d16]"
