@@ -109,11 +109,9 @@ export default function DetectionMap() {
               lat: point.lat,
               lng: point.lng,
             }))}
-            options={{
-              fillOpacity: 0.12,
-              strokeOpacity: 0.8,
-              strokeWeight: 2,
-            }}
+            fillOpacity={0.12}
+            strokeOpacity={0.8}
+            strokeWeight={2}
           />
 
           {/* Simulated ESP32 sensor positions */}
@@ -137,11 +135,9 @@ export default function DetectionMap() {
                   lng: alert.lng,
                 }}
                 radius={alert.radiusM}
-                options={{
-                  fillOpacity: 0.12,
-                  strokeOpacity: 0.7,
-                  strokeWeight: 2,
-                }}
+                fillOpacity={0.12}
+                strokeOpacity={0.7}
+                strokeWeight={2}
               />
 
               <AdvancedMarker
