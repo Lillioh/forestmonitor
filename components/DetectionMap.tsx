@@ -1,53 +1,86 @@
 "use client";
 
-import { AdvancedMarker, APIProvider, Map } from "@vis.gl/react-google-maps";
+import {
+  AdvancedMarker,
+  APIProvider,
+  Map,
+  useMap,
+} from "@vis.gl/react-google-maps";
+import { useAlerts } from "@/context/AlertsContext";
+import { useEffect, useMemo } from "react";
 
-const detections = [
-  {
-    id: 1,
-    lat: 8.460140,
-    lng: 124.700302,
-    label: "Chainsaw Detection",
-  },
-  {
-    id: 2,
-    lat: 8.458825,
-    lng: 124.701397,
-    label: "Possible Illegal Logging",
-  },
-  {
-    id: 3,
-    lat: 8.460395,
-    lng: 124.701965,
-    label: "Possible Illegal Logging",
-  },
-];
+function MapBounds() {
+  const map = useMap();
+  const { alerts, sensors } = useAlerts();
 
-// Default map location
-const DEFAULT_CENTER = {
-  lat: 8.459787,
-  lng: 124.701221,
-};
+  const locations = useMemo(
+    () => [
+      ...sensors.map((sensor) => ({
+        lat: sensor.lat,
+        lng: sensor.lng,
+      })),
+      ...alerts.map((alert) => ({
+        lat: alert.lat,
+        lng: alert.lng,
+      })),
+    ],
+    [sensors, alerts]
+  );
+
+  useEffect(() => {
+    if (!map || locations.length === 0) return;
+
+    const bounds = new google.maps.LatLngBounds();
+
+    locations.forEach((location) => {
+      bounds.extend(location);
+    });
+
+    map.fitBounds(bounds, 80);
+  }, [map, locations]);
+
+  return null;
+}
 
 export default function DetectionMap() {
+  const { alerts, sensors } = useAlerts();
+
   return (
     <div className="h-[500px] w-full overflow-hidden rounded-xl">
       <APIProvider
         apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}
       >
         <Map
-          defaultCenter={DEFAULT_CENTER}
-          defaultZoom={15}
+          defaultCenter={{
+            lat: 8.4542,
+            lng: 124.6319,
+          }}
+          defaultZoom={14}
           mapId="DEMO_MAP_ID"
         >
-          {detections.map((detection) => (
+          <MapBounds />
+
+          {/* Sensor nodes */}
+          {sensors.map((sensor) => (
             <AdvancedMarker
-              key={detection.id}
+              key={sensor.id}
               position={{
-                lat: detection.lat,
-                lng: detection.lng,
+                lat: sensor.lat,
+                lng: sensor.lng,
               }}
-              title={detection.label}
+              title={`${sensor.name} — ${sensor.status}`}
+            />
+          ))}
+
+          {/* Detections */}
+          {alerts.map((alert) => (
+            <AdvancedMarker
+              key={`alert-${alert.id}`}
+              position={{
+                lat: alert.lat,
+                lng: alert.lng,
+              }}
+              title={`${alert.classification} — ${alert.confidence}% confidence`}
             />
           ))}
         </Map>
