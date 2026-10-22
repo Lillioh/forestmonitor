@@ -1,4 +1,8 @@
-import GoogleLoginButton from "@/components/GoogleLoginButton";
+import LocalLoginForm from "@/components/LocalLoginForm";
+import { currentUser } from "@/lib/server/auth";
+import { accountCount } from "@/lib/server/account-store.mjs";
+import { redirect } from "next/navigation";
+import { isCloud } from "@/lib/server/deployment.mjs";
 import {
   Radio,
   MapPin,
@@ -6,7 +10,11 @@ import {
   Activity,
 } from "lucide-react";
 
-export default function Home() {
+export const runtime = "nodejs";
+
+export default async function Home() {
+  if (await currentUser()) redirect("/dashboard");
+  const cloud = isCloud();
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#07100b] text-white">
       
@@ -15,7 +23,7 @@ export default function Home() {
         <div
           className="absolute inset-0 bg-cover bg-center opacity-40"
           style={{
-            backgroundImage: "url('/forest-map.jpg')",
+            backgroundImage: "radial-gradient(ellipse at 75% 40%, #365e40, transparent 65%)",
           }}
         />
 
@@ -57,7 +65,7 @@ export default function Home() {
 
           <div className="hidden items-center gap-2 text-[10px] uppercase tracking-widest text-[#718077] sm:flex">
             <span className="h-1.5 w-1.5 rounded-full bg-[#70b878]" />
-            Monitoring Network Online
+            {cloud ? "Cloud Outpost View" : "Local Outpost Access"}
           </div>
         </header>
 
@@ -135,19 +143,18 @@ export default function Home() {
                   </h2>
 
                   <p className="mt-2 text-xs leading-5 text-[#718077]">
-                    Authorized personnel only. Continue using your
-                    organization account.
+                    {cloud ? "Authorized personnel only. Use your cloud account to view the outpost's latest uploaded records." : "Authorized personnel only. Continue using your local outpost account. Internet access is not required."}
                   </p>
                 </div>
 
                 {/* OAuth */}
-                <GoogleLoginButton />
+                <LocalLoginForm hasAccounts={await accountCount() > 0} />
 
                 <div className="my-6 flex items-center gap-3">
                   <div className="h-px flex-1 bg-[#26342b]" />
 
                   <span className="text-[8px] uppercase tracking-widest text-[#56645b]">
-                    Secure OAuth 2.0
+                    {cloud ? "Cloud account access" : "Local authentication"}
                   </span>
 
                   <div className="h-px flex-1 bg-[#26342b]" />
@@ -155,14 +162,14 @@ export default function Home() {
 
                 {/* Security info */}
                 <div className="space-y-3 rounded-lg border border-[#233129] bg-[#101a14] p-4">
-                  <SecurityItem text="No password stored by Forest Monitor" />
-                  <SecurityItem text="Authenticated through Google OAuth" />
-                  <SecurityItem text="Encrypted authentication session" />
+                  <SecurityItem text="Passwords protected with salted hashing" />
+                  <SecurityItem text={cloud ? "Cloud accounts are managed separately" : "Accounts verified on this outpost device"} />
+                  <SecurityItem text={cloud ? "Read-only records from the last outpost upload" : "Works over the local network without internet"} />
                 </div>
 
                 <p className="mt-6 text-center text-[9px] leading-4 text-[#4f5d54]">
                   Access is restricted to authorized monitoring personnel.
-                  By continuing, you agree to the system's access policies.
+                  By continuing, you agree to the system&apos;s access policies.
                 </p>
               </div>
 

@@ -1,15 +1,21 @@
 import Sidebar from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
 import { AlertsProvider } from "@/context/AlertsContext";
+import { requireUser } from "@/lib/server/auth";
+import { monitoringState } from "@/lib/server/state";
 
-export default function ProtectedLayout({
+export const runtime = "nodejs";
+
+export default async function ProtectedLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const user = await requireUser();
+  const initialState = await monitoringState();
   return (
-    <AlertsProvider>
-      <main className="flex h-screen overflow-hidden">
+    <AlertsProvider initialState={initialState} user={user}>
+      <main className="flex h-full overflow-hidden">
         <Sidebar />
 
         <section className="flex min-w-0 flex-1 flex-col">

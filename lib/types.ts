@@ -37,6 +37,9 @@ export interface Alert {
   responseMinutes: number | null;
   tdoa: TdoaPair[];
   priority: "HIGH" | "MEDIUM" | "LOW";
+  source?: "SENSOR" | "SIMULATION";
+  dispatchedAt?: number;
+  resolvedAt?: number;
 }
 
 export type NodeRole = "Root Gateway" | "Relay" | "Endpoint";
@@ -70,4 +73,21 @@ export interface NodeEvent {
   nodeId: string;
   type: string;
   details: string;
+}
+
+export interface MonitoringSettings {
+  outpostName: string;
+  location: string;
+}
+
+export interface MonitoringState {
+  alerts: Alert[];
+  sensors: SensorNode[];
+  nodeEvents: NodeEvent[];
+  teams: DispatchTeam[];
+  settings: MonitoringSettings;
+  simulationEnabled: boolean;
+  readOnly: boolean;
+  deployment: "local" | "cloud";
+  sync: { deviceId: string; enabled: boolean; pending: number | null; lastSyncedAt: number | null; error: string | null };
 }

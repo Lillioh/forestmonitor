@@ -11,6 +11,7 @@ export default function NodeDetailCard({
   node: SensorNode;
   now: number;
 }) {
+  const statusColor = node.status === "ONLINE" ? "var(--status-online)" : node.status === "DEGRADED" ? "var(--status-warning)" : "var(--text-muted)";
   return (
     <div
       className="
@@ -40,13 +41,13 @@ export default function NodeDetailCard({
             text-[9px] font-bold
           "
           style={{
-            color: "var(--status-online)",
+            color: statusColor,
           }}
         >
           <span
             className="h-1.5 w-1.5 rounded-full"
             style={{
-              backgroundColor: "var(--status-online)",
+              backgroundColor: statusColor,
             }}
           />
 
@@ -100,7 +101,7 @@ export default function NodeDetailCard({
               text-[var(--text)]
             "
           >
-            {node.coreTemp.toFixed(1)} °C
+            {node.lastSyncAt ? `${node.coreTemp.toFixed(1)} °C` : "No telemetry"}
           </span>
         </div>
 
@@ -121,7 +122,7 @@ export default function NodeDetailCard({
               text-[var(--text)]
             "
           >
-            {formatRelativeTime(node.lastSyncAt, now)}
+            {node.lastSyncAt ? formatRelativeTime(node.lastSyncAt, now) : "No telemetry received"}
           </span>
         </div>
 

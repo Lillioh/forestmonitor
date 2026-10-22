@@ -11,6 +11,7 @@ export default function SensorCard({
   battery,
   status,
 }: SensorCardProps) {
+  const statusColor = status === "ONLINE" ? "var(--status-online)" : status === "DEGRADED" ? "var(--status-warning)" : "var(--text-muted)";
   return (
     <div
       className="
@@ -29,13 +30,13 @@ export default function SensorCard({
             text-[8px]
           "
           style={{
-            color: "var(--status-online)",
+            color: statusColor,
           }}
         >
           <span
             className="h-1.5 w-1.5 rounded-full"
             style={{
-              backgroundColor: "var(--status-online)",
+              backgroundColor: statusColor,
             }}
           />
 

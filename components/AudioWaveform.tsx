@@ -84,12 +84,13 @@ export default function AudioWaveform({ seed }: { seed: number }) {
           text-[var(--text-muted)]
         "
       >
-        Captured Audio (CH. 01)
+        Demo waveform — no captured recording available
       </p>
 
       <div className="flex items-center gap-3">
         <button
           onClick={toggle}
+          aria-label={playing ? "Pause waveform demonstration" : "Play waveform demonstration"}
           className="
             flex h-8 w-8 shrink-0
             items-center justify-center

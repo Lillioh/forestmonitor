@@ -12,6 +12,9 @@ export default function IncidentFeed() {
     dispatchAlert,
     markResolved,
     triggerDetection,
+    simulationEnabled,
+    user,
+    readOnly,
   } = useAlerts();
 
   const now = useNow();
@@ -34,7 +37,7 @@ export default function IncidentFeed() {
             INCIDENT FEED
           </h2>
 
-          <button
+          {simulationEnabled && user.role === "admin" && <button
             onClick={triggerDetection}
             title="Manually simulate a new sensor detection (stand-in for the LoRa/Raspberry Pi feed, not yet connected)"
             className="
@@ -47,7 +50,7 @@ export default function IncidentFeed() {
             "
           >
             + Simulate Ping
-          </button>
+          </button>}
         </div>
       </div>
 
@@ -72,8 +75,7 @@ export default function IncidentFeed() {
               text-[var(--text-muted)]
             "
           >
-            No detections yet. Waiting on the sensor mesh
-            <span className="animate-pulse">…</span>
+            No detections recorded. Sensor ingestion has not been connected yet.
           </div>
         ) : (
           <div className="space-y-2">
@@ -82,6 +84,7 @@ export default function IncidentFeed() {
                 key={incident.id}
                 incident={incident}
                 now={now}
+                readOnly={readOnly}
                 onDispatch={() => dispatchAlert(incident.id)}
                 onResolve={() => markResolved(incident.id)}
               />
@@ -96,11 +99,13 @@ export default function IncidentFeed() {
 function IncidentCard({
   incident,
   now,
+  readOnly,
   onDispatch,
   onResolve,
 }: {
   incident: Alert;
   now: number;
+  readOnly: boolean;
   onDispatch: () => void;
   onResolve: () => void;
 }) {
@@ -149,6 +154,7 @@ function IncidentCard({
       </div>
 
       {/* Coordinates */}
+      {incident.source === "SIMULATION" && <p className="mt-2 text-[9px] font-bold text-amber-600 dark:text-amber-300">SIMULATED DETECTION</p>}
       <p className="mt-2 font-mono text-[10px] text-[var(--text)]">
         {formatCoords(incident.lat, incident.lng)}
       </p>
@@ -167,7 +173,7 @@ function IncidentCard({
 
       {/* Actions */}
       <div className="mt-3 flex gap-2">
-        {isNew ? (
+        {!readOnly && isNew ? (
           <button
             onClick={onDispatch}
             className="
@@ -180,7 +186,7 @@ function IncidentCard({
           >
             Dispatch DENR/ENRO
           </button>
-        ) : isDispatched ? (
+        ) : !readOnly && isDispatched ? (
           <button
             onClick={onResolve}
             className="

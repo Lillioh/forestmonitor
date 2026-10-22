@@ -28,7 +28,7 @@ const STATUS_FILTERS: Array<{
 ];
 
 export default function AlertLogPage() {
-  const { alerts, dispatchAlert } = useAlerts();
+  const { alerts, dispatchAlert, readOnly } = useAlerts();
   const now = useNow();
 
   const [search, setSearch] = useState("");
@@ -318,7 +318,7 @@ export default function AlertLogPage() {
                       px-3 py-2
                     "
                   >
-                    {alert.status === "NEW" ? (
+                    {!readOnly && alert.status === "NEW" ? (
                       <button
                         onClick={() =>
                           dispatchAlert(alert.id)

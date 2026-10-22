@@ -1,0 +1,17 @@
+Regional basemap: OpenStreetMap contributors, packaged by Protomaps.
+Source: https://build.protomaps.com/20261021.pmtiles
+OSM data timestamp: 2026-10-21T04:00:00Z
+Protomaps schema: 4.15.2
+Bounds and SHA-256: asset-manifest.json
+
+Map data is made available under the Open Database License (ODbL):
+https://opendatacommons.org/licenses/odbl/1-0/
+Attribution and further details: https://www.openstreetmap.org/copyright
+Protomaps: https://protomaps.com
+
+Noto Sans glyphs: SIL Open Font License 1.1; see FONT-LICENSE.txt.
+Sprite icons derived from tangrams/icons: MIT; see SPRITE-LICENSE.txt.
+https://github.com/protomaps/basemaps-assets
+
+This is a regional vector basemap. It does not contain live sensor positions,
+private incident records, satellite imagery, routing, or elevation terrain.

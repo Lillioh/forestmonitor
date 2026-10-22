@@ -2,14 +2,17 @@
 
 import { useMemo } from "react";
 import { useAlerts } from "@/context/AlertsContext";
+import { useNow } from "@/lib/use-now";
 
 export default function ReportsPage() {
   const { alerts, teams } = useAlerts();
+  const now = useNow();
 
   const stats = useMemo(() => {
-    const total = alerts.length;
-    const dispatched = alerts.filter((a) => a.status !== "NEW").length;
-    const responded = alerts.filter((a) => a.responseMinutes !== null);
+    const records = alerts.filter((a) => a.source !== "SIMULATION" && a.timestamp >= now - 30 * 86400000);
+    const total = records.length;
+    const dispatched = records.filter((a) => a.dispatchedAt !== undefined).length;
+    const responded = records.filter((a) => a.responseMinutes !== null);
 
     const avgResponse =
       responded.length > 0
@@ -19,7 +22,7 @@ export default function ReportsPage() {
           ) / responded.length
         : null;
 
-    const falsePositives = alerts.filter(
+    const falsePositives = records.filter(
       (a) => a.status === "FALSE_POSITIVE"
     ).length;
 
@@ -28,7 +31,7 @@ export default function ReportsPage() {
 
     const zoneCounts = new Map<string, number>();
 
-    for (const a of alerts) {
+    for (const a of records) {
       zoneCounts.set(
         a.zone,
         (zoneCounts.get(a.zone) ?? 0) + 1
@@ -41,16 +44,16 @@ export default function ReportsPage() {
 
     const hourBuckets = new Array(24).fill(0);
 
-    for (const a of alerts) {
-      const hour = new Date(a.timestamp).getHours();
+    for (const a of records) {
+      const hour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Manila", hour: "2-digit", hourCycle: "h23" }).format(a.timestamp));
       hourBuckets[hour] += 1;
     }
 
     const teamPerf = teams.map((team) => {
-      const teamAlerts = alerts.filter(
+      const teamAlerts = records.filter(
         (a) =>
           a.assignedTeamId === team.id &&
-          a.responseMinutes !== null
+          a.responseMinutes !== null && a.status === "RESOLVED"
       );
 
       const avg =
@@ -77,7 +80,7 @@ export default function ReportsPage() {
       hourBuckets,
       teamPerf,
     };
-  }, [alerts, teams]);
+  }, [alerts, teams, now]);
 
   const maxZoneCount = stats.zones[0]?.[1] ?? 1;
   const maxHour = Math.max(1, ...stats.hourBuckets);
@@ -94,7 +97,7 @@ export default function ReportsPage() {
         </p>
 
         <p className="text-[10px] text-[var(--text-muted)]">
-          Forest Activity Analytics · Last 30 Days
+          Forest Activity Analytics · Last 30 Days · Test detections excluded
         </p>
       </div>
 

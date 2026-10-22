@@ -1,9 +1,7 @@
 import type { DispatchTeam, MeshLink, NodeEvent, SensorNode } from "./types";
 
-// Fixed "boot" anchor baked in at module load, used only as the SSR-safe
-// starting point for the live clock (see use-now.ts). It is NOT a source of
-// fake incident history.
-export const DEMO_NOW = Date.now();
+// No telemetry timestamp is invented before hardware has reported a reading.
+export const DEMO_NOW = 0;
 
 export const OUTPOST = {
   name: "Forest Outpost 03",
@@ -13,9 +11,8 @@ export const OUTPOST = {
 };
 
 // ---------------------------------------------------------------------------
-// Sensor nodes + mesh — real deployed node identities/config. Telemetry
-// values below are the baseline reading at boot; they drift live once the
-// simulation engine starts (see context/AlertsContext.tsx + lib/simulation.ts).
+// Initial device configuration, seeded into SQLite exactly once.
+// These telemetry placeholders are shown as unavailable until ingestion exists.
 // ---------------------------------------------------------------------------
 
 export const INITIAL_SENSOR_NODES: SensorNode[] = [
@@ -23,46 +20,46 @@ export const INITIAL_SENSOR_NODES: SensorNode[] = [
     id: "NODE-01",
     name: "NODE-01",
     role: "Root Gateway",
-    lat: 8.4542,
-    lng: 124.6319,
-    signal: 88,
-    battery: 74,
-    coreTemp: 24.8,
+    lat: 8.460140,
+    lng: 124.700302,
+    signal: 0,
+    battery: 0,
+    coreTemp: 0,
     uptimeHours: 0,
-    firmware: "v1.2.4 alpha",
-    deployed: "Jan 14, 2024",
+    firmware: "Not reported",
+    deployed: "Not recorded",
     lastSyncAt: DEMO_NOW,
-    status: "ONLINE",
+    status: "OFFLINE",
   },
   {
     id: "NODE-02",
     name: "NODE-02",
     role: "Relay",
-    lat: 8.4498,
-    lng: 124.6287,
-    signal: 95,
-    battery: 61,
-    coreTemp: 26.1,
+    lat: 8.458825,
+    lng: 124.701397,
+    signal: 0,
+    battery: 0,
+    coreTemp: 0,
     uptimeHours: 0,
-    firmware: "v1.2.4 alpha",
-    deployed: "Jan 15, 2024",
+    firmware: "Not reported",
+    deployed: "Not recorded",
     lastSyncAt: DEMO_NOW,
-    status: "ONLINE",
+    status: "OFFLINE",
   },
   {
     id: "NODE-03",
     name: "NODE-03",
     role: "Endpoint",
-    lat: 8.4561,
-    lng: 124.6402,
-    signal: 79,
-    battery: 83,
-    coreTemp: 23.9,
+    lat: 8.460395,
+    lng: 124.701965,
+    signal: 0,
+    battery: 0,
+    coreTemp: 0,
     uptimeHours: 0,
-    firmware: "v1.2.3 release",
-    deployed: "Feb 02, 2024",
+    firmware: "Not reported",
+    deployed: "Not recorded",
     lastSyncAt: DEMO_NOW,
-    status: "ONLINE",
+    status: "OFFLINE",
   },
 ];
 

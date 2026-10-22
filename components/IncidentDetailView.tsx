@@ -3,8 +3,8 @@
 import { useAlerts } from "@/context/AlertsContext";
 import { formatCoords, formatRelativeTime } from "@/lib/format";
 import { useNow } from "@/lib/use-now";
+import { recordedIncidentTimeline } from "@/lib/incident-timeline";
 import Link from "next/link";
-import { useState } from "react";
 import AudioWaveform from "./AudioWaveform";
 import StatusBadge from "./ui/StatusBadge";
 
@@ -17,14 +17,14 @@ export default function IncidentDetailView({ id }: { id: string }) {
     markFalsePositive,
     escalate,
     assignTeam,
+    readOnly,
   } = useAlerts();
 
   const now = useNow();
   const alert = getAlert(id);
 
-  const [selectedTeam, setSelectedTeam] = useState(
-    alert?.assignedTeamId ?? ""
-  );
+  const selectedTeam = alert?.assignedTeamId ?? "";
+  const closed = readOnly || alert?.status === "RESOLVED" || alert?.status === "FALSE_POSITIVE";
 
   if (!alert) {
     return (
@@ -33,7 +33,7 @@ export default function IncidentDetailView({ id }: { id: string }) {
 
         <div className="mt-3">
           <Link
-            href="/"
+            href="/dashboard"
             className="text-[var(--accent)] hover:underline"
           >
             Return to Live Map
@@ -43,42 +43,7 @@ export default function IncidentDetailView({ id }: { id: string }) {
     );
   }
 
-  const timeline = [
-    {
-      label: `Sound detected by ${alert.nodeId}`,
-      offset: 0,
-    },
-    ...(alert.tdoa[0]
-      ? [
-          {
-            label: `Sound detected by NODE-02 (+${alert.tdoa[0].ms}ms)`,
-            offset: alert.tdoa[0].ms,
-          },
-        ]
-      : []),
-    ...(alert.tdoa[2]
-      ? [
-          {
-            label: `Sound detected by NODE-03 (+${alert.tdoa[2].ms}ms)`,
-            offset: alert.tdoa[2].ms,
-          },
-        ]
-      : []),
-    {
-      label: "TDoA localization complete",
-      offset: (alert.tdoa[2]?.ms ?? 0) + 400,
-    },
-    {
-      label: `CNN classification: ${alert.classification} (${alert.confidence.toFixed(
-        1
-      )}%)`,
-      offset: (alert.tdoa[2]?.ms ?? 0) + 1200,
-    },
-    {
-      label: "Alert generated",
-      offset: (alert.tdoa[2]?.ms ?? 0) + 2200,
-    },
-  ];
+  const timeline = recordedIncidentTimeline(alert);
 
   return (
     <div className="bg-[var(--background)] p-5">
@@ -86,7 +51,7 @@ export default function IncidentDetailView({ id }: { id: string }) {
       {/* Breadcrumb */}
       <p className="mb-1 text-[10px] text-[var(--text-muted)]">
         <Link
-          href="/"
+          href="/dashboard"
           className="transition hover:text-[var(--text)]"
         >
           Live Map
@@ -136,6 +101,7 @@ export default function IncidentDetailView({ id }: { id: string }) {
         {/* Left Column */}
         <div className="space-y-4 xl:col-span-2">
 
+          {alert.source === "SIMULATION" && <p className="rounded border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-300">SIMULATED DETECTION — generated for testing, not sensor evidence.</p>}
           <AudioWaveform seed={Number(alert.id)} />
 
           {/* TDoA Analysis */}
@@ -211,11 +177,11 @@ export default function IncidentDetailView({ id }: { id: string }) {
                 >
                   <span
                     className="
-                      w-16 shrink-0 font-mono
+                      w-36 shrink-0 font-mono
                       text-[var(--text-muted)]
                     "
                   >
-                    +{(step.offset / 1000).toFixed(1)}s
+                    {new Date(step.timestamp).toLocaleString("en-PH", { timeZone: "Asia/Manila" })} PHT
                   </span>
 
                   <span className="text-[var(--text)]">
@@ -260,8 +226,8 @@ export default function IncidentDetailView({ id }: { id: string }) {
 
               <select
                 value={selectedTeam}
+                disabled={closed}
                 onChange={(e) => {
-                  setSelectedTeam(e.target.value);
                   assignTeam(alert.id, e.target.value);
                 }}
                 className="
@@ -273,10 +239,10 @@ export default function IncidentDetailView({ id }: { id: string }) {
                   outline-none
                 "
               >
-                <option value="">Select Team...</option>
+                <option value="" disabled>Select Team...</option>
 
                 {teams.map((team) => (
-                  <option key={team.id} value={team.id}>
+                  <option key={team.id} value={team.id} disabled={team.status === "OFFLINE"}>
                     {team.name} ({team.shortCode})
                   </option>
                 ))}
@@ -294,8 +260,7 @@ export default function IncidentDetailView({ id }: { id: string }) {
                   )
                 }
                 disabled={
-                  alert.status === "RESOLVED" ||
-                  alert.status === "FALSE_POSITIVE"
+                  closed
                 }
                 className="
                   w-full rounded
@@ -312,7 +277,7 @@ export default function IncidentDetailView({ id }: { id: string }) {
               </button>
 
               {/* Resolve */}
-              {alert.status === "DISPATCHED" && (
+              {!readOnly && alert.status === "DISPATCHED" && (
                 <button
                   onClick={() => markResolved(alert.id)}
                   className="
@@ -336,6 +301,7 @@ export default function IncidentDetailView({ id }: { id: string }) {
                   onClick={() =>
                     markFalsePositive(alert.id)
                   }
+                  disabled={closed}
                   className="
                     flex-1 rounded
                     border border-[var(--border)]
@@ -352,6 +318,7 @@ export default function IncidentDetailView({ id }: { id: string }) {
                 {/* Escalate */}
                 <button
                   onClick={() => escalate(alert.id)}
+                  disabled={closed}
                   className="
                     flex-1 rounded
                     border border-[#e95b47]/40

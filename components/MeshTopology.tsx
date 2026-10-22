@@ -1,4 +1,5 @@
-import { INITIAL_SENSOR_NODES, MESH_LINKS } from "@/lib/mock-data";
+import { MESH_LINKS } from "@/lib/mock-data";
+import { useAlerts } from "@/context/AlertsContext";
 
 const POSITIONS: Record<string, { x: number; y: number }> = {
   "NODE-01": { x: 90, y: 100 },
@@ -7,6 +8,7 @@ const POSITIONS: Record<string, { x: number; y: number }> = {
 };
 
 export default function MeshTopology() {
+  const { sensors } = useAlerts();
   return (
     <div
       className="
@@ -25,7 +27,7 @@ export default function MeshTopology() {
       >
         LoRa Mesh Topology{" "}
         <span className="text-[var(--text-muted)]">
-          · Signal Link Quality (RSSI / SNR)
+          · Configured links — live link telemetry not connected
         </span>
       </p>
 
@@ -40,12 +42,7 @@ export default function MeshTopology() {
           const midX = (from.x + to.x) / 2;
           const midY = (from.y + to.y) / 2;
 
-          const color =
-            link.quality >= 85
-              ? "var(--status-online)"
-              : link.quality >= 70
-                ? "var(--status-warning)"
-                : "#e46a52";
+          const color = "var(--text-muted)";
 
           return (
             <g key={`${link.from}-${link.to}`}>
@@ -55,7 +52,7 @@ export default function MeshTopology() {
                 x2={to.x}
                 y2={to.y}
                 stroke={color}
-                strokeWidth={Math.max(1, link.quality / 40)}
+                strokeWidth={2}
                 opacity={0.75}
               />
 
@@ -77,13 +74,13 @@ export default function MeshTopology() {
                 fill="var(--text)"
                 fontFamily="ui-monospace, monospace"
               >
-                {link.quality}%
+                —
               </text>
             </g>
           );
         })}
 
-        {INITIAL_SENSOR_NODES.map((node) => {
+        {sensors.map((node) => {
           const p = POSITIONS[node.id];
 
           return (
@@ -92,7 +89,7 @@ export default function MeshTopology() {
                 cx={p.x}
                 cy={p.y}
                 r={9}
-                fill="var(--status-online)"
+                fill={node.status === "ONLINE" ? "var(--status-online)" : "var(--text-muted)"}
                 stroke="var(--background)"
                 strokeWidth={2}
               />

@@ -66,7 +66,8 @@ export function alertsToCsv(rows: Record<string, string | number>[]): string {
       headers
         .map((h) => {
           const v = String(row[h] ?? "");
-          return v.includes(",") ? `"${v}"` : v;
+          const safe = /^[=+@\-\t\r]/.test(v) ? `'${v}` : v;
+          return /[",\r\n]/.test(safe) ? `"${safe.replaceAll('"', '""')}"` : safe;
         })
         .join(",")
     ),

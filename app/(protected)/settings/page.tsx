@@ -1,479 +1,71 @@
 "use client";
 
-import Toggle from "@/components/ui/Toggle";
+import { useState } from "react";
 import { useAlerts } from "@/context/AlertsContext";
 import { alertsToCsv, downloadTextFile } from "@/lib/format";
-import { OUTPOST } from "@/lib/mock-data";
-import type { DispatchTeam } from "@/lib/types";
-import { useState } from "react";
-
-const CHANNELS = [
-  "SMS Gateway",
-  "Email Report",
-  "VHF Radio Broadcast",
-  "Mobile Push Alert",
-];
 
 export default function SettingsPage() {
-  const {
-    alerts,
-    teams,
-    setTeams,
-    sensors,
-    simRunning,
-    toggleSimulation,
-    triggerDetection,
-    resetSimulation,
-  } = useAlerts();
-
-  const [outpostName, setOutpostName] = useState(OUTPOST.name);
-  const [location, setLocation] = useState(OUTPOST.location);
-  const [meshProtocol, setMeshProtocol] = useState("LoRa 915MHz");
-  const [errorRadius, setErrorRadius] = useState(15);
-  const [syncInterval, setSyncInterval] = useState(5);
-  const [autoDispatch, setAutoDispatch] = useState(true);
-  const [activeChannels, setActiveChannels] = useState<string[]>([
-    "SMS Gateway",
-    "Email Report",
-  ]);
-  const [escalationTimeout, setEscalationTimeout] = useState(10);
-  const [retention, setRetention] = useState("90 days");
-  const [exportFormat, setExportFormat] = useState<
-    "CSV" | "JSON" | "GeoJSON"
-  >("CSV");
-  const [autoExport, setAutoExport] = useState(true);
+  const { settings, user, teams, sensors, alerts, saveSettings, addTeam, removeTeam, simulationEnabled, triggerDetection, readOnly } = useAlerts();
+  const admin = user.role === "admin" && !readOnly;
+  const [outpostName, setOutpostName] = useState(settings.outpostName);
+  const [location, setLocation] = useState(settings.location);
   const [newTeamName, setNewTeamName] = useState("");
-  const [toast, setToast] = useState<string | null>(null);
+  const [exportFormat, setExportFormat] = useState<"CSV" | "JSON" | "GeoJSON">("CSV");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
-  function showToast(message: string) {
-    setToast(message);
-    setTimeout(() => setToast(null), 2500);
+  async function save() {
+    setBusy(true); setMessage(null);
+    if (await saveSettings({ outpostName, location })) setMessage("Outpost details saved on this device.");
+    setBusy(false);
   }
 
-  function toggleChannel(channel: string) {
-    setActiveChannels((prev) =>
-      prev.includes(channel)
-        ? prev.filter((c) => c !== channel)
-        : [...prev, channel]
-    );
+  async function createTeam() {
+    if (!newTeamName.trim()) return;
+    setBusy(true);
+    if (await addTeam(newTeamName)) { setNewTeamName(""); setMessage("Dispatch team saved."); }
+    setBusy(false);
   }
 
-  function addTeam() {
-    const name = newTeamName.trim();
-
-    if (!name) return;
-
-    const team: DispatchTeam = {
-      id: `team-${Date.now()}`,
-      name,
-      shortCode: name
-        .split(" ")
-        .map((w) => w[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 4),
-      members: 3,
-      channel: "Radio Mesh",
-      status: "STANDBY",
-    };
-
-    setTeams((prev) => [...prev, team]);
-    setNewTeamName("");
-    showToast(`${name} added to dispatch teams`);
-  }
-
-  function removeTeam(id: string) {
-    setTeams((prev) => prev.filter((t) => t.id !== id));
-  }
-
-  function handleExportAll() {
-    if (exportFormat === "JSON" || exportFormat === "GeoJSON") {
-      const payload =
-        exportFormat === "GeoJSON"
-          ? {
-              type: "FeatureCollection",
-              features: alerts.map((a) => ({
-                type: "Feature",
-                geometry: {
-                  type: "Point",
-                  coordinates: [a.lng, a.lat],
-                },
-                properties: a,
-              })),
-            }
-          : { sensors, alerts };
-
-      downloadTextFile(
-        `forest-outpost-export.${
-          exportFormat === "GeoJSON" ? "geojson" : "json"
-        }`,
-        JSON.stringify(payload, null, 2),
-        "application/json"
-      );
+  function exportData() {
+    if (exportFormat === "CSV") {
+      downloadTextFile("forest-incidents.csv", alertsToCsv(alerts.map((a) => ({ id: a.code, time: new Date(a.timestamp).toISOString(), lat: a.lat, lng: a.lng, classification: a.classification, confidence: a.confidence, status: a.status, source: a.source ?? "SENSOR", team: a.assignedTeamId ?? "" }))), "text/csv");
     } else {
-      const rows = alerts.map((a) => ({
-        id: a.code,
-        classification: a.classification,
-        confidence: a.confidence,
-        status: a.status,
-        zone: a.zone,
-      }));
-
-      downloadTextFile(
-        "forest-outpost-export.csv",
-        alertsToCsv(rows),
-        "text/csv"
-      );
+      const payload = exportFormat === "GeoJSON" ? { type: "FeatureCollection", features: alerts.map((a) => ({ type: "Feature", geometry: { type: "Point", coordinates: [a.lng, a.lat] }, properties: a })) } : { settings, sensors, alerts, teams };
+      downloadTextFile(`forest-outpost-export.${exportFormat === "GeoJSON" ? "geojson" : "json"}`, JSON.stringify(payload, null, 2), "application/json");
     }
-
-    showToast("Export started — check your downloads");
   }
 
-  return (
-    <div className="space-y-5 p-5">
-      <div>
-        <p className="text-xs font-semibold tracking-wider text-[var(--text-muted)]">
-          SETTINGS
-        </p>
+  const input = "w-full rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-sm text-[var(--text)] disabled:opacity-60";
+  const button = "rounded bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-black disabled:opacity-40";
 
-        <p className="text-[10px] text-[var(--text-muted)]">
-          System Configuration · {outpostName}
-        </p>
+  return <div className="space-y-5 p-5">
+    <div><h2 className="text-sm font-semibold">Outpost settings</h2><p className="mt-1 text-xs text-[var(--text-muted)]">{readOnly ? "This cloud copy displays records uploaded by the outpost." : "Accounts and monitoring records are stored on this outpost device."}</p></div>
+    {!admin && <p className="text-xs text-[var(--text-muted)]">{readOnly ? "Manage outpost details and dispatch teams on the local Pi." : "Signed in as an operator. An administrator manages outpost details and dispatch teams."}</p>}
+    {message && <p role="status" className="rounded border border-[var(--border)] bg-[var(--card)] p-3 text-xs">{message}</p>}
+    <Panel title="Outpost details">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="space-y-2 text-xs"><span>Outpost name</span><input value={outpostName} onChange={(e) => setOutpostName(e.target.value)} maxLength={80} disabled={!admin || busy} className={input} /></label>
+        <label className="space-y-2 text-xs"><span>Location</span><input value={location} onChange={(e) => setLocation(e.target.value)} maxLength={160} disabled={!admin || busy} className={input} /></label>
       </div>
-
-      <Panel title="General System Details">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Outpost Name">
-            <input
-              value={outpostName}
-              onChange={(e) => setOutpostName(e.target.value)}
-              className="input"
-            />
-          </Field>
-
-          <Field label="Timezone">
-            <input
-              value={OUTPOST.timezone}
-              readOnly
-              className="input opacity-60"
-            />
-          </Field>
-
-          <Field label="Location">
-            <input
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="input"
-            />
-          </Field>
-
-          <Field label="Language">
-            <select
-              value="English"
-              disabled
-              className="input opacity-60"
-            >
-              <option>English</option>
-            </select>
-          </Field>
-        </div>
-      </Panel>
-
-      <Panel title="Sensor Network Parameters">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Field label="Mesh Protocol">
-            <select
-              value={meshProtocol}
-              onChange={(e) => setMeshProtocol(e.target.value)}
-              className="input"
-            >
-              <option>LoRa 915MHz</option>
-              <option>LoRa 868MHz</option>
-              <option>Zigbee 2.4GHz</option>
-            </select>
-          </Field>
-
-          <Field label="Error Radius Threshold (m)">
-            <input
-              type="number"
-              value={errorRadius}
-              onChange={(e) => setErrorRadius(Number(e.target.value))}
-              className="input"
-            />
-          </Field>
-
-          <Field label="Sync Interval (s)">
-            <input
-              type="number"
-              value={syncInterval}
-              onChange={(e) => setSyncInterval(Number(e.target.value))}
-              className="input"
-            />
-          </Field>
-        </div>
-      </Panel>
-
-      <Panel title="Alert Configuration">
-        <div className="mb-4 flex items-center justify-between">
-          <span className="text-[11px] text-[var(--text)]">
-            Auto dispatch on High Confidence
-          </span>
-
-          <Toggle
-            checked={autoDispatch}
-            onChange={setAutoDispatch}
-          />
-        </div>
-
-        <p className="mb-2 text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
-          Active Notification Channels
-        </p>
-
-        <div className="mb-4 flex flex-wrap gap-2">
-          {CHANNELS.map((channel) => {
-            const active = activeChannels.includes(channel);
-
-            return (
-              <button
-                key={channel}
-                onClick={() => toggleChannel(channel)}
-                className={`rounded-full border px-3 py-1.5 text-[10px] transition ${
-                  active
-                    ? "border-[color-mix(in_srgb,var(--status-online)_50%,transparent)] bg-[color-mix(in_srgb,var(--status-online)_15%,transparent)] text-[var(--status-online)]"
-                    : "border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-muted)]"
-                }`}
-              >
-                {channel}
-              </button>
-            );
-          })}
-        </div>
-
-        <Field label="Escalation Timeout (min)">
-          <input
-            type="number"
-            value={escalationTimeout}
-            onChange={(e) =>
-              setEscalationTimeout(Number(e.target.value))
-            }
-            className="input w-32"
-          />
-        </Field>
-      </Panel>
-
-      <Panel title="Dispatch Teams">
-        <table className="w-full text-left text-[11px]">
-          <thead>
-            <tr className="text-[9px] uppercase tracking-wider text-[var(--text-muted)]">
-              <th className="py-2 font-medium">Team Name</th>
-              <th className="py-2 font-medium">Members</th>
-              <th className="py-2 font-medium">Contact Channel</th>
-              <th className="py-2 font-medium">Status</th>
-              <th className="py-2 font-medium" />
-            </tr>
-          </thead>
-
-          <tbody>
-            {teams.map((team) => (
-              <tr
-                key={team.id}
-                className="border-t border-[var(--border)]"
-              >
-                <td className="py-2 text-[var(--text)]">
-                  {team.name}
-                </td>
-
-                <td className="py-2 text-[var(--text-muted)]">
-                  {team.members} rangers
-                </td>
-
-                <td className="py-2 text-[var(--text-muted)]">
-                  {team.channel}
-                </td>
-
-                <td className="py-2">
-                  <span
-                    className={`rounded px-2 py-0.5 text-[9px] font-bold ${
-                      team.status === "ACTIVE"
-                        ? "bg-[color-mix(in_srgb,var(--status-online)_15%,transparent)] text-[var(--status-online)]"
-                        : team.status === "STANDBY"
-                          ? "bg-[color-mix(in_srgb,var(--status-warning)_15%,transparent)] text-[var(--status-warning)]"
-                          : "bg-[color-mix(in_srgb,var(--text-muted)_15%,transparent)] text-[var(--text-muted)]"
-                    }`}
-                  >
-                    {team.status}
-                  </span>
-                </td>
-
-                <td className="py-2 text-right">
-                  <button
-                    onClick={() => removeTeam(team.id)}
-                    className="text-[9px] text-[var(--text-muted)] hover:text-[#e46a52]"
-                  >
-                    Remove
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <div className="mt-4 flex gap-2">
-          <input
-            value={newTeamName}
-            onChange={(e) => setNewTeamName(e.target.value)}
-            onKeyDown={(e) =>
-              e.key === "Enter" && addTeam()
-            }
-            placeholder="New team name..."
-            className="input flex-1"
-          />
-
-          <button
-            onClick={addTeam}
-            className="rounded bg-[var(--accent)] px-4 py-2 text-[10px] font-bold text-black hover:brightness-110"
-          >
-            + Add Team
-          </button>
-        </div>
-      </Panel>
-
-      <Panel title="Data &amp; Export Preferences">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Data Retention Policy">
-            <select
-              value={retention}
-              onChange={(e) => setRetention(e.target.value)}
-              className="input"
-            >
-              <option>30 days</option>
-              <option>90 days</option>
-              <option>180 days</option>
-              <option>1 year</option>
-            </select>
-          </Field>
-
-          <Field label="Default Export Format">
-            <div className="flex gap-2">
-              {(["CSV", "JSON", "GeoJSON"] as const).map(
-                (fmt) => (
-                  <button
-                    key={fmt}
-                    onClick={() => setExportFormat(fmt)}
-                    className={`rounded border px-3 py-1.5 text-[10px] ${
-                      exportFormat === fmt
-                        ? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] text-[var(--accent)]"
-                        : "border-[var(--border)] text-[var(--text-muted)]"
-                    }`}
-                  >
-                    {fmt}
-                  </button>
-                )
-              )}
-            </div>
-          </Field>
-        </div>
-
-        <div className="mt-4 flex items-center justify-between">
-          <span className="text-[11px] text-[var(--text)]">
-            Automated Daily Export
-          </span>
-
-          <Toggle
-            checked={autoExport}
-            onChange={setAutoExport}
-          />
-        </div>
-
-        <div className="mt-4 flex gap-2">
-          <button
-            onClick={handleExportAll}
-            className="rounded bg-[var(--accent)] px-4 py-2 text-[10px] font-bold text-black hover:brightness-110"
-          >
-            Export All Data
-          </button>
-
-          <button
-            onClick={() => showToast("Local cache cleared")}
-            className="rounded border border-[var(--border)] px-4 py-2 text-[10px] text-[var(--text-muted)] hover:bg-[var(--panel)]"
-          >
-            Clear Cache
-          </button>
-        </div>
-      </Panel>
-
-      {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-md border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-[11px] text-[var(--text)] shadow-lg">
-          {toast}
-        </div>
-      )}
-
-      <style jsx global>{`
-        .input {
-          width: 100%;
-          border-radius: 0.375rem;
-          border: 1px solid var(--border);
-          background: var(--panel);
-          padding: 0.5rem 0.75rem;
-          font-size: 11px;
-          color: var(--text);
-        }
-
-        .input::placeholder {
-          color: var(--text-muted);
-        }
-
-        .input:focus {
-          outline: none;
-          border-color: var(--accent);
-        }
-
-        .input:disabled,
-        .input[readonly] {
-          color: var(--text-muted);
-        }
-
-        .input option {
-          background: var(--panel);
-          color: var(--text);
-        }
-      `}</style>
-    </div>
-  );
+      <p className="mt-3 text-xs text-[var(--text-muted)]">Timezone: Asia/Manila (PHT +08:00)</p>
+      {admin && <button onClick={save} disabled={busy || !outpostName.trim() || !location.trim()} className={`mt-4 ${button}`}>{busy ? "Saving…" : "Save outpost details"}</button>}
+    </Panel>
+    <Panel title="Dispatch teams">
+      <div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead className="text-[var(--text-muted)]"><tr><th className="py-2">Team</th><th>Members</th><th>Channel</th><th>Status</th>{admin && <th><span className="sr-only">Actions</span></th>}</tr></thead><tbody>
+        {teams.map((team) => <tr key={team.id} className="border-t border-[var(--border)]"><td className="py-3 pr-3">{team.name}</td><td className="pr-3">{team.members}</td><td className="pr-3">{team.channel}</td><td className="pr-3">{team.status}</td>{admin && <td><button disabled={busy} onClick={async () => { setBusy(true); await removeTeam(team.id); setBusy(false); }} className="text-red-500 disabled:opacity-40">Remove</button></td>}</tr>)}
+        {teams.length === 0 && <tr><td colSpan={admin ? 5 : 4} className="py-4 text-[var(--text-muted)]">No dispatch teams configured.</td></tr>}
+      </tbody></table></div>
+      {admin && <form onSubmit={(e) => { e.preventDefault(); void createTeam(); }} className="mt-4 flex gap-2"><input aria-label="New dispatch team name" value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} maxLength={80} placeholder="New dispatch team name" disabled={busy} className={input} /><button disabled={busy || !newTeamName.trim()} className={`shrink-0 ${button}`}>Add team</button></form>}
+    </Panel>
+    <Panel title="Export monitoring records">
+      <div className="flex flex-wrap items-center gap-3"><label className="text-xs">Format <select value={exportFormat} onChange={(e) => setExportFormat(e.target.value as typeof exportFormat)} className="ml-2 rounded border border-[var(--border)] bg-[var(--panel)] p-2"><option>CSV</option><option>JSON</option><option>GeoJSON</option></select></label><button onClick={exportData} className={button}>Export data</button></div>
+      <p className="mt-3 text-xs text-[var(--text-muted)]">Exports contain monitoring records. Device backups must also include accounts, configuration, and recordings.</p>
+    </Panel>
+    {simulationEnabled && admin && <Panel title="Test detection"><p className="mb-3 text-xs text-[var(--text-muted)]">Test detections are labeled SIMULATED and saved in the incident log.</p><button onClick={() => triggerDetection()} className={button}>Generate test detection</button></Panel>}
+  </div>;
 }
 
-function Panel({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
-      <p className="mb-4 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-        {title}
-      </p>
-
-      {children}
-    </div>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-[9px] uppercase tracking-wider text-[var(--text-muted)]">
-        {label}
-      </span>
-
-      {children}
-    </label>
-  );
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+  return <section className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4"><h3 className="mb-4 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">{title}</h3>{children}</section>;
 }

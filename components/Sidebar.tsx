@@ -1,7 +1,6 @@
 "use client";
 
 import { useAlerts } from "@/context/AlertsContext";
-import { OUTPOST } from "@/lib/mock-data";
 import { NAV_ITEMS, isNavActive } from "@/lib/nav";
 import { Home } from "lucide-react";
 import Link from "next/link";
@@ -9,7 +8,7 @@ import { usePathname } from "next/navigation";
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { alerts, sensors } = useAlerts();
+  const { alerts, sensors, settings } = useAlerts();
 
   const onlineCount = sensors.filter(
     (n) => n.status === "ONLINE"
@@ -125,7 +124,7 @@ export default function Sidebar() {
         >
           <Home size={14} />
 
-          {OUTPOST.name}
+          {settings.outpostName}
         </div>
 
         <p
@@ -134,7 +133,7 @@ export default function Sidebar() {
             text-[var(--text-muted)]
           "
         >
-          {OUTPOST.location}
+          {settings.location}
         </p>
 
         {/* Active Nodes */}

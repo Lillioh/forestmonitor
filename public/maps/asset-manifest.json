@@ -1,0 +1,179 @@
+{
+  "source": "https://github.com/protomaps/basemaps-assets",
+  "license": "Fonts: SIL OFL 1.1 (FONT-LICENSE.txt); sprites derived from tangrams/icons: MIT (SPRITE-LICENSE.txt)",
+  "downloadedAt": "2026-10-22T04:14:48.587Z",
+  "assets": [
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/0-255.pbf",
+      "path": "glyphs/Noto Sans Regular/0-255.pbf",
+      "bytes": 76044,
+      "sha256": "62c6d49b15fa836eb6aa45e259c7ca6762f44b011b09e47776efbe4a6db1b397"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/256-511.pbf",
+      "path": "glyphs/Noto Sans Regular/256-511.pbf",
+      "bytes": 127726,
+      "sha256": "2eca7561f9f566bcacfda5dd04fb5880baec1328ec0f5484678289a13994de8a"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/512-767.pbf",
+      "path": "glyphs/Noto Sans Regular/512-767.pbf",
+      "bytes": 94728,
+      "sha256": "6abc80badad0e823e228ab739515be257c8b33bc68bb077dd873030e9b2d143a"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/768-1023.pbf",
+      "path": "glyphs/Noto Sans Regular/768-1023.pbf",
+      "bytes": 77034,
+      "sha256": "537ccbee79180f4f8b3f6d2bdd27df979260ce1a0358c40d7aa7db505d9b03aa"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/8192-8447.pbf",
+      "path": "glyphs/Noto Sans Regular/8192-8447.pbf",
+      "bytes": 64220,
+      "sha256": "8ea977a587352fe31b4159ffdbc9a40be79056f2472017c742ea1e4a931864b9"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/8448-8703.pbf",
+      "path": "glyphs/Noto Sans Regular/8448-8703.pbf",
+      "bytes": 82014,
+      "sha256": "125b49cccfe95ac2f64b6bc2661871fba0081ff1b24f34c20bd29260b9351b57"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Medium/0-255.pbf",
+      "path": "glyphs/Noto Sans Medium/0-255.pbf",
+      "bytes": 77628,
+      "sha256": "ba2f0118dd024e3041b158e5f9eb49bc0a658019f53f458e9f5c0b8efcd79b91"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Medium/256-511.pbf",
+      "path": "glyphs/Noto Sans Medium/256-511.pbf",
+      "bytes": 129635,
+      "sha256": "d5e801a1a5b1d409d3298c3a1e1ca76328e2314a751078833a618620e8e66e4d"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Medium/512-767.pbf",
+      "path": "glyphs/Noto Sans Medium/512-767.pbf",
+      "bytes": 96169,
+      "sha256": "985e56060887a8e774fdf62ec4619f26bd44d264fcb837d315023f87d768f8e2"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Medium/768-1023.pbf",
+      "path": "glyphs/Noto Sans Medium/768-1023.pbf",
+      "bytes": 71160,
+      "sha256": "4b92939b4d3779b2d0b6be5b69c105e8c88352c047170e474011e82511ac03e9"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Medium/8192-8447.pbf",
+      "path": "glyphs/Noto Sans Medium/8192-8447.pbf",
+      "bytes": 65101,
+      "sha256": "cc38e4956207f0edba1aaf749b61e8f6f1678ef1ad443d32ee285b21d0eb67aa"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Medium/8448-8703.pbf",
+      "path": "glyphs/Noto Sans Medium/8448-8703.pbf",
+      "bytes": 77027,
+      "sha256": "9579816ed2c7765b605f76271f212b28fb82ba2019bef3156db270d3e9aa6790"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Italic/0-255.pbf",
+      "path": "glyphs/Noto Sans Italic/0-255.pbf",
+      "bytes": 79344,
+      "sha256": "43edfca91c285ba1226f09d5e74d68e1473a088c517f02a5212ff6ccb10037dc"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Italic/256-511.pbf",
+      "path": "glyphs/Noto Sans Italic/256-511.pbf",
+      "bytes": 132976,
+      "sha256": "a6f9f6574c86a4a28aba630ca1017857ceadd2370ed32a1293c35f819ab9bd60"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Italic/512-767.pbf",
+      "path": "glyphs/Noto Sans Italic/512-767.pbf",
+      "bytes": 96460,
+      "sha256": "5849298255f12639422a8b8ef32927b1ac49d59f725afaa6cbaf51550a5752fe"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Italic/768-1023.pbf",
+      "path": "glyphs/Noto Sans Italic/768-1023.pbf",
+      "bytes": 71308,
+      "sha256": "52bfd64775b91f7847da983b7bbc277135e006423cec22a44499e03e182e614e"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Italic/8192-8447.pbf",
+      "path": "glyphs/Noto Sans Italic/8192-8447.pbf",
+      "bytes": 52891,
+      "sha256": "5dc4e6680116fef01be024e272859d130262613c7e634409a590e5d50ad124ae"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Italic/8448-8703.pbf",
+      "path": "glyphs/Noto Sans Italic/8448-8703.pbf",
+      "bytes": 49772,
+      "sha256": "c5ac063bb324f783a20ad168587f5d3c6966df53114ca95ab7a3af3d61458a42"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/sprites/v4/light.json",
+      "path": "sprites/light.json",
+      "bytes": 3549,
+      "sha256": "bfac76cf7ed5c2aa2992695904056a1c6b07785b7fd20e6c640cb44fd6244a2e"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/sprites/v4/light.png",
+      "path": "sprites/light.png",
+      "bytes": 16174,
+      "sha256": "b6a34640917bdc57d0bd080836db33376371a3312ebe7b849045268015de3481"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/sprites/v4/light@2x.json",
+      "path": "sprites/light@2x.json",
+      "bytes": 3579,
+      "sha256": "1fb5b123fbe35d2e1f6ac171513ce01df89e671273a417ee89c44886a4c132f0"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/sprites/v4/light@2x.png",
+      "path": "sprites/light@2x.png",
+      "bytes": 28852,
+      "sha256": "23f6e9df27c2e9a14385763980a24e3608966bfc8192a106058bc2ca959ab563"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/sprites/v4/dark.json",
+      "path": "sprites/dark.json",
+      "bytes": 3549,
+      "sha256": "bfac76cf7ed5c2aa2992695904056a1c6b07785b7fd20e6c640cb44fd6244a2e"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/sprites/v4/dark.png",
+      "path": "sprites/dark.png",
+      "bytes": 16054,
+      "sha256": "8920f68e8f9f7a4188da43e62a81bbc426532579fff7b5f27aad09e130f4246e"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/sprites/v4/dark@2x.json",
+      "path": "sprites/dark@2x.json",
+      "bytes": 3579,
+      "sha256": "1fb5b123fbe35d2e1f6ac171513ce01df89e671273a417ee89c44886a4c132f0"
+    },
+    {
+      "source": "https://protomaps.github.io/basemaps-assets/sprites/v4/dark@2x.png",
+      "path": "sprites/dark@2x.png",
+      "bytes": 28407,
+      "sha256": "6e01b4e366d304f27bbd55390511a3d4e39aa1d03eb3e82f873f7ea32e74cbe4"
+    }
+  ],
+  "archive": {
+    "path": "outpost.pmtiles",
+    "source": "https://build.protomaps.com/20261021.pmtiles",
+    "bounds": [
+      124.6,
+      8.42,
+      124.75,
+      8.51
+    ],
+    "minZoom": 8,
+    "maxZoom": 15,
+    "tiles": 198,
+    "bytes": 3481211,
+    "sha256": "929d1d58d870543e79efe86a89cf379544d1f3a7d80322593bc5c691a041f0ab",
+    "license": "Open Database License (ODbL); OpenStreetMap contributors; Protomaps"
+  }
+}

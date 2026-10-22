@@ -1,36 +1,115 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bantay Gubat / Forest Monitor
 
-## Getting Started
+An offline outpost dashboard for acoustic forest monitoring. Next.js serves the interface and a local API; SQLite stores accounts, sessions, incidents, sensor configuration, dispatch teams, outpost settings, and an audit log on the Raspberry Pi. Browsers on the same local network share this database through the API.
 
-First, run the development server:
+## Raspberry Pi 4 Model B (8 GB)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Use a 64-bit Linux OS and **Node.js 24.15 or newer within the 24.x LTS line**, with npm. This application uses Node's built-in `node:sqlite`; no MongoDB, Supabase, database daemon, or native npm database addon is required.
+- Initial software installation requires internet access or preloaded dependencies. Normal operation does not.
+- Keep the database on local storage, preferably an SSD, not a network share. Reserve CPU/RAM for the separate ML/TDoA process.
+
+```sh
+npm ci
+cp .env.example .env.local
+npm run account:create
+npm run build
+npm start -- --hostname 0.0.0.0
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+During account creation, choose a username, display name, role (`admin` for the initial administrator), and a unique password of 12–128 characters. Password entry is hidden. There are **no default credentials and no public signup**. Create subsequent operator accounts with the same command on the Pi. Reset a forgotten password using `npm run account:reset`; it revokes that user's sessions.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+For a terminal without hidden-input support, use `npm run account:create -- --username admin --name Administrator --role admin --generate-password`. This generates a unique random password and displays it once in that terminal; save it privately. Passwords are never accepted as command-line arguments.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+On Windows use `Copy-Item .env.example .env.local` when creating the environment file and `npm.cmd` if PowerShell blocks `npm.ps1`. Preserve any existing `.env.local` rather than overwriting it; old Supabase/Google environment variables are unused.
 
-## Learn More
+Open `http://<pi-local-IP>:3000` from a phone or computer on the same Wi-Fi/Ethernet network. On the Pi itself, open `http://localhost:3000`. The network needs no internet uplink. A browser disconnected from the Pi cannot fetch or change records; this is local server operation, not a browser PWA. Optional cloud mirroring is disabled until configured as described below.
 
-To learn more about Next.js, take a look at the following resources:
+## Configuration
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `FOREST_DATABASE_PATH` | `./data/forest-monitor.sqlite` | Local SQLite path, relative to the project working directory unless absolute |
+| `FOREST_DEPLOYMENT` | `local` | Use `cloud` only on Vercel with MongoDB configured |
+| `FOREST_COOKIE_SECURE` | `false` | Set `true` with HTTPS; retain `false` for a local HTTP deployment |
+| `FOREST_SIMULATION_ENABLED` | `false` | Allow admins to generate labeled test detections |
+| `FOREST_MAP_ARCHIVE` | `./public/maps/outpost.pmtiles` | Read-only regional PMTiles archive |
+| `FOREST_SYNC_URL` | empty | Optional HTTPS cloud receiver, e.g. `https://your-site.vercel.app/api/sync` |
+| `FOREST_SYNC_TOKEN` | empty | Per-device upload token issued by cloud setup; never a `NEXT_PUBLIC_` variable |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Use a trusted LAN. HTTP does not encrypt passwords in transit; use local HTTPS when the network is shared or untrusted and set `FOREST_COOKIE_SECURE=true`. Cookies are HttpOnly and SameSite=Lax. Session tokens are random, stored only as hashes, expire after 12 hours, and are revoked at logout. Passwords use salted scrypt; login attempts are limited in the local database. Administrators manage configuration and teams; operators can view records and perform incident response actions.
 
-## Deploy on Vercel
+## Monitoring data
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Sensor coordinates use the configured three-node triangle. Nodes start offline until real telemetry is integrated; no simulated data is generated automatically.
+- Administrator test detections are available only with `FOREST_SIMULATION_ENABLED=true`. They are persisted and clearly marked `SIMULATION`.
+- Response time measures detection to first dispatch; resolution has its own timestamp. Actions and settings changes are committed transactionally and audited.
+- The incident timeline shows recorded detection, dispatch, and closure times. TDoA pair delays are displayed separately; inference-stage completion times are not assumed.
+- Dashboard clients poll the authenticated local state endpoint every five seconds and reload state after mutations. Refreshing or restarting does not discard saved records.
+- MapLibre renders a local vector basemap with roads, buildings, land cover, water, configured sensors, active incidents, and uncertainty areas. No Google scripts, remote tiles, fonts, or icons are fetched during normal operation.
+- ESP32/LoRa ingestion, Raspberry Pi ML/TDoA inference, real audio recordings, and notification delivery remain separate integration work. The existing waveform is an explicitly labeled demonstration, not recorded evidence.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Offline geographic map
+
+The repository includes `public/maps/outpost.pmtiles`: **3,481,211 bytes, 198 tiles, zooms 8-15**, bounding box **124.60,8.42,124.75,8.51** (west,south,east,north). It covers the project's currently configured sensor area near Cagayan de Oro. The renderer can zoom further by enlarging existing vector tiles. It does not add detail beyond zoom 15, provide satellite imagery, or calculate routes. Position estimates still come from the application's sensor data; a basemap does not improve TDoA accuracy.
+
+The source is the Protomaps 2026-10-21 daily archive, schema 4.15.2. Sources, sizes, and SHA-256 hashes are in `public/maps/asset-manifest.json`. Fonts, sprites, and their licenses are bundled alongside the archive. OpenStreetMap attribution remains on the map. Run `npm run map:assets -- --check` to verify all bundled assets without internet. To re-download the pinned fonts/icons while online, run `npm run map:assets`; it rejects changed upstream bytes.
+
+To prepare a different region while online:
+
+```sh
+npm run map:prepare -- --source https://build.protomaps.com/20261021.pmtiles --bounds 124.60,8.42,124.75,8.51 --max-zoom 15 --output data/maps/outpost.pmtiles
+```
+
+Then set `FOREST_MAP_ARCHIVE` to that file and restart. The extraction tool bounds work to 4,096 tiles and 256 MB and checks range support and source format. A smaller area/zoom is needed if those limits are exceeded. For a different region on Vercel, replace the bundled `public/maps/outpost.pmtiles`, review/update its manifest, and rebuild so the function trace includes the correct archive.
+
+Authenticated map endpoints validate the archive and serve small byte ranges with `206`, `Content-Range`, ETag, and no compression transformation. Keep byte-range headers intact in any reverse proxy. MapLibre uses two workers and a bounded tile cache; rendering happens in the viewing browser. A browser without working WebGL, or a missing/corrupt package, receives the coordinate-view fallback. Sensors outside the package's coverage produce a visible warning. Dark/light themes use local styles and assets.
+
+## Optional Vercel + MongoDB cloud mirror
+
+The Pi remains authoritative: **Next.js + local SQLite + local accounts + local map** work without the cloud. Vercel runs the same application in `FOREST_DEPLOYMENT=cloud` mode and reads MongoDB. It never opens SQLite or writes local files. Cloud accounts and sessions are separate; local users, password hashes, sessions, and audit logs are never uploaded. The remote dashboard is read-only, including server-side mutation enforcement, and shows the last outpost contact time. Do not treat it as live when the Pi lacks internet.
+
+1. Obtain the Pi's stable identity with `npm run sync:status`. Back up its SQLite database before upgrading; schema version 2 adds the transactional outbox and identity automatically.
+2. Create a MongoDB Atlas database (or a MongoDB replica set that supports transactions). Prepare a private `.env.cloud.local` based on `.env.cloud.example` on an administration machine. Set `MONGODB_URI` and `FOREST_DEPLOYMENT=cloud`. Protect this file; it must not be committed.
+3. Run `node --env-file=.env.cloud.local scripts/cloud-setup.mjs --device <pi-device-id> --name "Forest Outpost 03"`. This creates indexes and registers the device. Save its displayed upload token privately. Re-registering an existing identity is refused to preserve synchronization history.
+4. Set `FOREST_CLOUD_DEVICE_ID` in that cloud environment, and provision a cloud viewer account with `node --env-file=.env.cloud.local scripts/account.mjs`. Use a distinct password from the Pi. Cloud accounts can view data; even a cloud admin cannot dispatch or modify outpost records.
+5. Deploy this repository to Vercel with Node.js 24.x and the values from `.env.cloud.example`. Choose the Next.js framework and a build command of `npm run build -- --webpack`. Keep MongoDB credentials server-side. Configure Atlas network access for the deployment and use a database user limited to this application's database.
+6. On the Pi, set `FOREST_SYNC_URL=https://<your-vercel-domain>/api/sync` and the issued `FOREST_SYNC_TOKEN`, retaining `FOREST_DEPLOYMENT=local`. Try `npm run sync:once`, then run `npm run sync:run` as a separate service.
+
+Each committed telemetry/configuration change enqueues an event in the same SQLite transaction, including deletion tombstones. The worker saves the exact in-flight request in local internal configuration before sending a bounded HTTPS batch. New records wait for the next batch; retries retain the same request even after a worker restart or lost cloud response. The receiver commits mirror changes and its acknowledgment together in a MongoDB transaction. Acknowledged events and their saved request are removed in one local transaction; failures remain queued and retry with backoff. A local lease prevents competing workers; idle workers send a contact heartbeat once a minute. The web request path never waits for an internet upload.
+
+This is a single-outpost, one-way mirror. A missing internet connection means the cloud copy becomes stale; Vercel cannot be accessed offline. MongoDB alone does not synchronize two deployments. Existing records bootstrap into the queue once during migration; accounts do not. Keep sufficient disk space for the queue during long outages. Raw recordings are not included in this protocol.
+
+Linux service examples are in `deploy/forest-monitor.service` and `deploy/forest-sync.service`. Change the username, project directory, and Node/npm paths to match the Pi; configure the database path on persistent storage. The sync service is optional, and neither service requires an internet connection at boot.
+
+## Backup and restore
+
+```sh
+npm run db:backup
+# Or write directly to a mounted external drive:
+npm run db:backup -- /media/backup/forest-monitor.sqlite
+```
+
+The backup command uses SQLite's online backup API so committed WAL content is included. It contains password hashes and account records: protect the file and keep a copy off the Pi. A monitoring JSON/CSV export is not a complete device backup. Copy audio recordings separately when recording support is added.
+
+To restore, stop the application and any database writers. Preserve the current database and its `-wal`/`-shm` companions together as a rollback copy, then place the consistent backup at `FOREST_DATABASE_PATH` with no stale companion files at that path. Ensure only the application account can access it, then restart. Restoring also restores account/session state from the backup.
+
+Stop the sync worker during restore too. A backup contains the device identity, acknowledgment sequence, and pending outbox. If the cloud has advanced beyond a restored backup, the receiver returns `409` rather than accepting old history. Keep local operation available while recovering the latest consistent database. Do not clear the queue, reset sequence numbers, reuse an identity on another live Pi, or overwrite the cloud device record to bypass this check. A replacement identity requires deliberate re-provisioning and a complete baseline; an automatic cloud rollback/reseed utility is not included.
+
+Configure your service manager to start the app after reboot, use the project as its working directory, and keep data outside release directories that get replaced. Backups and reliable power remain necessary; WAL does not protect against storage loss.
+
+## Development and checks
+
+```sh
+npm run dev
+npm run lint
+npm run typecheck
+npm test
+npm run map:assets -- --check
+# After a production build:
+npm run test:routes
+npm run test:http
+```
+
+Tests use isolated temporary databases. The compiled route check tests actual Next request/cookie contexts without sockets; the HTTP smoke check starts a production server and requires loopback networking. If Turbopack cannot launch its CSS worker in a restricted Windows environment, build with `npm run build -- --webpack`. No cloud credentials are required. Existing browser-only simulated incidents from earlier versions cannot be migrated after they have been discarded; earlier versions did not persist them.
+
+See `ARCHITECTURE-REVIEW.md` for the review, deployment boundaries, remaining hardware work, and validation limits. Live Atlas/Vercel checks require the actual deployment credentials; unit tests cover queue, retry, replay, stale-history, heartbeat, and local/cloud separation without contacting an external database.

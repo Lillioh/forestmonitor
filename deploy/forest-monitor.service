@@ -1,0 +1,18 @@
+[Unit]
+Description=Forest Monitor local dashboard
+After=network.target
+
+[Service]
+Type=simple
+User=forest
+WorkingDirectory=/opt/forest-monitor
+Environment=NODE_ENV=production
+Environment=FOREST_DEPLOYMENT=local
+ExecStart=/usr/bin/npm start -- --hostname 0.0.0.0
+Restart=on-failure
+RestartSec=10
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
