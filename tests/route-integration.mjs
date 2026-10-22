@@ -53,6 +53,10 @@ async function login(username) {
 try {
   await createAccount({ username: "admin", password, name: "Test Admin", role: "admin" });
   await createAccount({ username: "operator", password, name: "Test Operator", role: "operator" });
+  const health = await request("/api/health");
+  assert.equal(health.status, 200);
+  assert.deepEqual(await health.json(), { status: "ok" });
+  assert.match(health.headers.get("cache-control"), /no-store/);
   assert.equal((await request("/api/state")).status, 401);
   assert.equal((await request("/api/state", { cookie: "forest_session=forged" })).status, 401);
   assert.equal((await request("/api/maps")).status, 401);
@@ -116,18 +120,36 @@ try {
   assert.equal(secureLogin.status, 200);
   assert.match(secureLogin.headers.get("set-cookie"), /; Secure/i);
   process.env.FOREST_DEPLOYMENT = "cloud";
+  delete process.env.MONGODB_URI;
+  const unavailableHealth = await request("/api/health");
+  assert.equal(unavailableHealth.status, 503);
+  assert.deepEqual(await unavailableHealth.json(), { status: "unavailable" });
+  assert.match(unavailableHealth.headers.get("cache-control"), /no-store/);
+  const originalError = console.error;
+  const safeLogs = [];
+  try {
+    console.error = (...values) => safeLogs.push(values);
+    const unavailableLogin = await request("/api/auth/login", { method: "POST", body: { username: "clouduser", password }, origin: "https://outpost.local:3000" });
+    assert.equal(unavailableLogin.status, 500);
+    assert.deepEqual(await unavailableLogin.json(), { error: "The cloud database is unavailable. Contact the administrator." });
+    assert.ok(!JSON.stringify(safeLogs).includes("MONGODB_URI"));
+    assert.ok(!JSON.stringify(safeLogs).includes(password));
+  } finally { console.error = originalError; }
   assert.equal((await request("/api/sync", { method: "POST", body: {} })).status, 401);
   assert.equal((await request("/api/sync", { method: "POST", body: {}, headers: { Authorization: "Bearer isolated-test-token" } })).status, 400);
   // Supply only the read operations needed for cloud session verification.
   // Every mutation must be denied before it reaches any monitoring datastore.
   const fixtureUser = { _id: 9001, username: "cloudadmin", name: "Cloud Admin", role: "admin", passwordHash: "isolated-fixture-hash" };
-  const fixtureDatabase = { collection(name) {
+  const fixtureDatabase = { async command(value) { assert.deepEqual(value, { ping: 1 }); return { ok: 1 }; }, collection(name) {
     if (name === "users") return { findOne: async () => fixtureUser };
     if (name === "sessions") return { findOne: async () => ({ userId: fixtureUser._id, credentialVersion: createHash("sha256").update(fixtureUser.passwordHash).digest("hex") }) };
     throw new Error("Cloud mutation reached a datastore instead of being rejected.");
   } };
   process.env.MONGODB_URI = fixtureMongoUri;
   (globalThis.__forestMongoClients ??= new Map()).set(fixtureMongoUri, Promise.resolve({ db: () => fixtureDatabase }));
+  const cloudHealth = await request("/api/health");
+  assert.equal(cloudHealth.status, 200);
+  assert.deepEqual(await cloudHealth.json(), { status: "ok" });
   for (const [path, method, body] of [["/api/settings", "PATCH", {}], ["/api/teams", "POST", {}], ["/api/teams/qrt-a", "DELETE", {}], ["/api/alerts", "POST", {}], ["/api/alerts/001", "PATCH", { action: "dispatch" }]]) {
     const denied = await request(path, { method, body, cookie: `forest_session=${"x".repeat(43)}`, origin: "https://outpost.local:3000" });
     assert.equal(denied.status, 403, await denied.clone().text());

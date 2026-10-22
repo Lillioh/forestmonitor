@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { currentUser } from "./auth";
 import { StoreError } from "./monitoring.mjs";
 import { isCloud, secureCookies } from "./deployment.mjs";
+import { databaseFailure } from "./cloud/connection-check.mjs";
 
 export const privateHeaders = { "Cache-Control": "no-store, private" };
 
@@ -45,6 +46,6 @@ export async function readMutation(request: Request): Promise<Record<string, unk
 
 export function apiError(error: unknown) {
   if (error instanceof StoreError) return NextResponse.json({ error: error.message }, { status: error.status, headers: privateHeaders });
-  console.error("Outpost API error:", error);
+  console.error("Outpost API error:", databaseFailure(error));
   return NextResponse.json({ error: isCloud() ? "The cloud database is unavailable. Contact the administrator." : "The local database is unavailable. Check the outpost server." }, { status: 500, headers: privateHeaders });
 }

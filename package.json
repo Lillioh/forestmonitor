@@ -19,7 +19,9 @@
     "sync:run": "node --env-file-if-exists=.env.local scripts/sync.mjs",
     "sync:once": "node --env-file-if-exists=.env.local scripts/sync.mjs --once",
     "sync:status": "node --env-file-if-exists=.env.local scripts/sync-status.mjs",
-    "cloud:setup": "node --env-file-if-exists=.env.local scripts/cloud-setup.mjs"
+    "cloud:setup": "node --env-file-if-exists=.env.cloud.local scripts/cloud-setup.mjs",
+    "cloud:account": "node --env-file=.env.cloud.local scripts/account.mjs --cloud",
+    "db:check": "node --env-file-if-exists=.env.cloud.local scripts/db-check.mjs"
   },
   "engines": {
     "node": ">=24.15.0 <25"

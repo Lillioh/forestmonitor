@@ -81,6 +81,24 @@ This is a single-outpost, one-way mirror. A missing internet connection means th
 
 Linux service examples are in `deploy/forest-monitor.service` and `deploy/forest-sync.service`. Change the username, project directory, and Node/npm paths to match the Pi; configure the database path on persistent storage. The sync service is optional, and neither service requires an internet connection at boot.
 
+## Cloud connection diagnostics
+
+Keep the Pi's `.env.local` in local mode. Use a separate, ignored `.env.cloud.local` on the administration machine (copy `.env.cloud.example` once, without overwriting an existing configuration). Set `MONGODB_URI` to the complete Atlas Drivers connection string and `MONGODB_DATABASE=forest_monitor`. Percent-encode reserved characters in URI credentials; never use a `NEXT_PUBLIC_` variable for MongoDB. This private file is loaded explicitly by the cloud CLI commands. Next.js does not automatically load `.env.cloud.local`; set the cloud values in Vercel's environment settings before deploying.
+
+```sh
+npm run db:check
+npm run cloud:setup -- --device <actual-pi-device-id> --name "Forest Outpost 03"
+npm run cloud:account
+```
+
+`db:check` performs read-only checks and reports Shell availability/version, public DNS, Atlas SRV/TXT discovery, TCP connectivity, driver authentication, actual application collection reads, declared database write/index privileges, configured outpost state, and a separate MongoDB Shell ping. It never creates accounts, devices, or sample records. Successful pings do not prove write authorization or that the dashboard's device is configured. Required writes are checked against reported grants without writing production records. An incomplete or failed check exits nonzero. The Shell probe passes credentials through its child environment, not command arguments or output. Atlas CLI is not required.
+
+If DNS fails, authentication has not been tested. If TCP fails, inspect outbound network/firewall/VPN restrictions and Atlas Network Access. Use the current development/hosting outbound IPs and database-specific `readWrite` permissions; do not disable TLS validation or open network access to all addresses as a timeout workaround. Confirm Cluster0 is active and that the URI comes from that deployment. This environment cannot verify external Atlas settings without access to the Atlas project.
+
+Register only the identity from `npm run sync:status` on the actual Pi database. Do not provision the development computer as the Pi or replace an existing cloud device's synchronization history. The setup command displays an upload token once; save it privately in the Pi's configuration. Create dashboard accounts separately with `cloud:account` in an interactive terminal so passwords stay hidden.
+
+`GET /api/health` is a public, non-cacheable readiness probe. It returns only `200 {"status":"ok"}` or `503 {"status":"unavailable"}` after checking the selected database. Local mode checks SQLite without contacting Atlas. Cloud mode pings MongoDB using the same pooled client as the application. Connection establishment has a 12-second application deadline including DNS discovery, followed by a five-second ping deadline. Failed connections leave the cache and late connections are closed. API logs contain failure categories/codes rather than raw database errors or connection strings.
+
 ## Backup and restore
 
 ```sh

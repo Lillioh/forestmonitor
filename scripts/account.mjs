@@ -4,6 +4,7 @@ import { parseArgs } from "node:util";
 import { randomBytes } from "node:crypto";
 import { createAccount, resetPassword } from "../lib/server/account-store.mjs";
 import { isCloud } from "../lib/server/deployment.mjs";
+import { databaseFailure } from "../lib/server/cloud/connection-check.mjs";
 
 let rl;
 async function question(prompt) {
@@ -37,7 +38,8 @@ async function password(prompt) {
 }
 
 try {
-  const { values } = parseArgs({ options: { username: { type: "string" }, name: { type: "string" }, role: { type: "string" }, reset: { type: "boolean" }, "generate-password": { type: "boolean" } } });
+  const { values } = parseArgs({ options: { username: { type: "string" }, name: { type: "string" }, role: { type: "string" }, reset: { type: "boolean" }, cloud: { type: "boolean" }, "generate-password": { type: "boolean" } } });
+  if (values.cloud && !isCloud()) throw new Error("Cloud account commands require FOREST_DEPLOYMENT=cloud in .env.cloud.local.");
   const reset = values.reset;
   const username = values.username || await question("Username: ");
   const name = reset ? username : values.name || await question("Display name: ");
@@ -51,7 +53,8 @@ try {
   else { const user = await createAccount({ username, password: secret, name, role }); console.log(`${isCloud() ? "Cloud" : "Local"} ${user.role} account '${user.username}' created.`); }
   if (generated) console.log(`Generated password: ${secret}`);
 } catch (error) {
-  console.error(error.code === "ERR_SQLITE_ERROR" && error.message.includes("UNIQUE") ? "That username is already registered." : error.message);
+  console.error(error.code === 11000 || (error.code === "ERR_SQLITE_ERROR" && error.message.includes("UNIQUE")) ? "That username is already registered." : isCloud() ? "Cloud account command failed. Check the account inputs and run npm run db:check for connection diagnostics." : error.message);
+  if (isCloud()) console.error(databaseFailure(error));
   process.exitCode = 1;
 } finally {
   rl?.close();

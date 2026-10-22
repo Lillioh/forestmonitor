@@ -51,6 +51,14 @@ No Atlas/Vercel credentials or target Pi are available in this workspace. Live M
 
 The full HTTP smoke check was attempted: Next started successfully, but loopback requests failed with `connect EACCES`. The in-app browser also timed out reaching the local preview. These checks are environment-blocked and are not reported as passing.
 
+## MongoDB connection follow-up (2026-10-22)
+
+The existing integration uses the native `mongodb` driver with one shared client pool per URI. Cloud account/session and mirror operations already use it; local requests retain SQLite. The setup command now explicitly loads `.env.cloud.local`, and the cloud account command requires cloud mode to avoid provisioning a local account by mistake. Connection failures release the cached pool, use a 12-second deadline including DNS discovery, and close attempts that finish after that deadline. API and cloud CLI failures omit raw driver messages and credentials.
+
+`npm run db:check` adds read-only, separately reported environment, Shell, DNS, TCP, authentication, authorization, application-read, and Shell-ping checks. `GET /api/health` exposes only availability, returning `503` without database internals when cloud configuration or access is unavailable. Additional tests cover redaction, deadlines/late connections, shared-pool reuse, retry after failure, and the cloud-account mode guard; compiled route checks include local/cloud health and a generic database-unavailable login response.
+
+MongoDB Shell 2.13.0 is installed and verified. At this review the private cloud file has an empty `MONGODB_URI` and no cloud device identity. Atlas ping, authentication, authorization, and live dashboard state therefore remain unverified. Public DNS works in the JavaScript runtime while the restricted terminal's DNS requests fail. No TLS, firewall, network-access or Atlas configuration was weakened. No live cloud records, test accounts, or replacement device identities were created. Populate the private URI and register the actual Pi identity before completing live setup. The required external settings remain Atlas cluster availability, a database user with database-specific permissions, and authorized outbound IPs in Network Access.
+
 ## Remaining operational limits
 
 - The map is regional and dated, with vector detail through zoom 15. There is no satellite imagery, routing, terrain elevation, or automatic map update. Update packages while connected and retain attribution/licenses.
