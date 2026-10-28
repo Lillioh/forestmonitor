@@ -32,7 +32,7 @@ Open `http://<pi-local-IP>:3000` from a phone or computer on the same Wi-Fi/Ethe
 | `FOREST_DEPLOYMENT` | `local` | Use `cloud` only on Vercel with MongoDB configured |
 | `FOREST_COOKIE_SECURE` | `false` | Set `true` with HTTPS; retain `false` for a local HTTP deployment |
 | `FOREST_SIMULATION_ENABLED` | `false` | Allow admins to generate labeled test detections |
-| `FOREST_MAP_ARCHIVE` | `./public/maps/outpost.pmtiles` | Read-only regional PMTiles archive |
+| `FOREST_MAP_ARCHIVE` | `./public/maps/mapawa_malasag.pmtiles` | Read-only regional PMTiles archive |
 | `FOREST_SYNC_URL` | empty | Optional HTTPS cloud receiver, e.g. `https://your-site.vercel.app/api/sync` |
 | `FOREST_SYNC_TOKEN` | empty | Per-device upload token issued by cloud setup; never a `NEXT_PUBLIC_` variable |
 
@@ -50,17 +50,17 @@ Use a trusted LAN. HTTP does not encrypt passwords in transit; use local HTTPS w
 
 ## Offline geographic map
 
-The repository includes `public/maps/outpost.pmtiles`: **3,481,211 bytes, 198 tiles, zooms 8-15**, bounding box **124.60,8.42,124.75,8.51** (west,south,east,north). It covers the project's currently configured sensor area near Cagayan de Oro. The renderer can zoom further by enlarging existing vector tiles. It does not add detail beyond zoom 15, provide satellite imagery, or calculate routes. Position estimates still come from the application's sensor data; a basemap does not improve TDoA accuracy.
+The repository includes `public/maps/mapawa_malasag.pmtiles`: **1,415,845 bytes, 100 tiles, zooms 0-15**, bounding box **124.66,8.42,124.75,8.475** (west,south,east,north). It covers the project's configured Mapawa / Malasag sensor area near Cagayan de Oro. The renderer can zoom further by enlarging existing vector tiles. It does not add detail beyond zoom 15, provide satellite imagery, or calculate routes. Position estimates still come from the application's sensor data; a basemap does not improve TDoA accuracy.
 
-The source is the Protomaps 2026-10-21 daily archive, schema 4.15.2. Sources, sizes, and SHA-256 hashes are in `public/maps/asset-manifest.json`. Fonts, sprites, and their licenses are bundled alongside the archive. OpenStreetMap attribution remains on the map. Run `npm run map:assets -- --check` to verify all bundled assets without internet. To re-download the pinned fonts/icons while online, run `npm run map:assets`; it rejects changed upstream bytes.
+The source is the Protomaps 2026-10-26 daily archive, schema 4.15.2. Sources, sizes, and SHA-256 hashes are in `public/maps/asset-manifest.json`. Fonts, sprites, and their licenses are bundled alongside the archive. OpenStreetMap attribution remains on the map. Run `npm run map:assets -- --check` to verify all bundled assets without internet. To re-download the pinned fonts/icons while online, run `npm run map:assets`; it rejects changed upstream bytes.
 
 To prepare a different region while online:
 
 ```sh
-npm run map:prepare -- --source https://build.protomaps.com/20261021.pmtiles --bounds 124.60,8.42,124.75,8.51 --max-zoom 15 --output data/maps/outpost.pmtiles
+npm run map:prepare -- --source https://build.protomaps.com/20261026.pmtiles --bounds 124.66,8.42,124.75,8.475 --max-zoom 15 --output data/maps/mapawa_malasag.pmtiles
 ```
 
-Then set `FOREST_MAP_ARCHIVE` to that file and restart. The extraction tool bounds work to 4,096 tiles and 256 MB and checks range support and source format. A smaller area/zoom is needed if those limits are exceeded. For a different region on Vercel, replace the bundled `public/maps/outpost.pmtiles`, review/update its manifest, and rebuild so the function trace includes the correct archive.
+Then set `FOREST_MAP_ARCHIVE` to that file and restart. The extraction tool bounds work to 4,096 tiles and 256 MB and checks range support and source format. A smaller area/zoom is needed if those limits are exceeded. For a different region on Vercel, replace the bundled `public/maps/mapawa_malasag.pmtiles`, review/update its manifest, and rebuild so the function trace includes the correct archive.
 
 Authenticated map endpoints validate the archive and serve small byte ranges with `206`, `Content-Range`, ETag, and no compression transformation. Keep byte-range headers intact in any reverse proxy. MapLibre uses two workers and a bounded tile cache; rendering happens in the viewing browser. A browser without working WebGL, or a missing/corrupt package, receives the coordinate-view fallback. Sensors outside the package's coverage produce a visible warning. Dark/light themes use local styles and assets.
 

@@ -160,20 +160,27 @@
       "sha256": "6e01b4e366d304f27bbd55390511a3d4e39aa1d03eb3e82f873f7ea32e74cbe4"
     }
   ],
+  "worker": {
+    "path": "maplibre-gl-worker.js",
+    "source": "node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs",
+    "bytes": 518759,
+    "sha256": "4d87c975adf60aa235b457c30f8d4f6090697cfe3ff121a742779282fc2cc4c7",
+    "license": "BSD-3-Clause; MapLibre GL JS"
+  },
   "archive": {
-    "path": "outpost.pmtiles",
-    "source": "https://build.protomaps.com/20261021.pmtiles",
+    "path": "mapawa_malasag.pmtiles",
+    "source": "https://build.protomaps.com/20261026.pmtiles",
     "bounds": [
-      124.6,
-      8.42,
-      124.75,
-      8.51
+      124.45,
+      8.25,
+      124.95,
+      8.6
     ],
-    "minZoom": 8,
+    "minZoom": 0,
     "maxZoom": 15,
-    "tiles": 198,
-    "bytes": 3481211,
-    "sha256": "929d1d58d870543e79efe86a89cf379544d1f3a7d80322593bc5c691a041f0ab",
+    "tiles": 2046,
+    "bytes": 10155889,
+    "sha256": "d12109b26949a1ab01bb901e915351ef634a58c955e0f83e6d02de5e81b1ce1e",
     "license": "Open Database License (ODbL); OpenStreetMap contributors; Protomaps"
   }
 }

@@ -103,12 +103,12 @@ test("extractor enforces regional budgets and rejects a source that ignores rang
 
 test("bundled map and glyph/sprite assets match their pinned hashes and cover configured sensor tiles", async () => {
   const manifest = JSON.parse(readFileSync(new URL("../public/maps/asset-manifest.json", import.meta.url)));
-  for (const asset of [...manifest.assets, manifest.archive]) {
+  for (const asset of [...manifest.assets, ...(manifest.worker ? [manifest.worker] : []), manifest.archive]) {
     const bytes = readFileSync(new URL("../public/maps/" + asset.path, import.meta.url));
     assert.equal(bytes.length, asset.bytes, asset.path);
     assert.equal(createHash("sha256").update(bytes).digest("hex"), asset.sha256, asset.path);
   }
-  const archive = new PMTiles(source(readFileSync(new URL("../public/maps/outpost.pmtiles", import.meta.url))));
+  const archive = new PMTiles(source(readFileSync(new URL("../public/maps/" + manifest.archive.path, import.meta.url))));
   const metadata = await archive.getMetadata();
   assert.equal(metadata.version, "4.15.2");
   const x = Math.floor((124.7012 + 180) / 360 * 2 ** 15);

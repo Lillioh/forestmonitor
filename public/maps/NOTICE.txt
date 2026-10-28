@@ -1,6 +1,6 @@
 Regional basemap: OpenStreetMap contributors, packaged by Protomaps.
-Source: https://build.protomaps.com/20261021.pmtiles
-OSM data timestamp: 2026-10-21T04:00:00Z
+Source: https://build.protomaps.com/20261026.pmtiles
+OSM data timestamp: 2026-10-26T04:00:00Z
 Protomaps schema: 4.15.2
 Bounds and SHA-256: asset-manifest.json
 

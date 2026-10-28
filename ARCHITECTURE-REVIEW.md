@@ -17,7 +17,7 @@ Hardware ingestion, inference, synchronized TDoA measurements, recorded audio, a
 | Concern | Result / safeguard |
 | --- | --- |
 | Offline maps can silently retain CDN dependencies | Bundled PMTiles, local style generation, fonts, and sprites. Only optional attribution links lead outside the local host. Both theme styles validate against the MapLibre specification. |
-| A world archive is too large for the Pi | A 3.3 MB regional archive is bundled. Preparation rejects more than 4,096 tiles, zooms above 15, or more than 256 MB of compressed tile data. Sources and hashes are pinned. |
+| A world archive is too large for the Pi | A 1.4 MB regional archive (`mapawa_malasag.pmtiles`) is bundled. Preparation rejects more than 4,096 tiles, zooms above 15, or more than 256 MB of compressed tile data. Sources and hashes are pinned. |
 | Downloading the whole archive for each map request | Authenticated range endpoint returns exact `206` byte ranges, ETag and `Content-Range`; no transformations; requests capped at 4 MB. Missing/corrupt files produce a readable fallback. |
 | Pi/client memory and rendering | Two MapLibre workers, 100-tile cache, persistent map instance during polling, explicit resize/theme handling and cleanup, coordinate fallback on WebGL/render failure. The viewing browser renders the map. Actual ML-plus-browser load must be measured on the Pi. |
 | Coordinates outside the prepared region | Visible warning and coordinate plot; the selected region is not represented as worldwide coverage. |

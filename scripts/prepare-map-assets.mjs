@@ -6,7 +6,7 @@ import { createHash, randomUUID } from "node:crypto";
 const root = resolve("public/maps");
 const manifest = JSON.parse(await readFile(resolve(root, "asset-manifest.json"), "utf8"));
 const check = process.argv.includes("--check");
-const items = check ? [...manifest.assets, manifest.archive] : manifest.assets;
+const items = check ? [...manifest.assets, ...(manifest.worker ? [manifest.worker] : []), manifest.archive] : manifest.assets;
 for (const asset of items) {
   const path = resolve(root, asset.path);
   if (!path.startsWith(root + sep)) throw new Error("Invalid asset destination.");

@@ -15,6 +15,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 // Keep protocol registration valid across React's development remounts.
 const protocol = new Protocol();
 maplibregl.addProtocol("pmtiles", protocol.tile);
+maplibregl.setWorkerUrl("/maps/maplibre-gl-worker.js");
 maplibregl.setWorkerCount(2);
 
 export default function OfflineMap() {
