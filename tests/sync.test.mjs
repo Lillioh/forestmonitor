@@ -42,7 +42,7 @@ test("migration establishes one persistent identity and queues telemetry without
   migrateSync(db);
   assert.equal(nextBatch(db).deviceId, initial.deviceId);
   assert.equal(nextBatch(db).events.length, initial.events.length);
-  assert.equal(db.prepare("PRAGMA user_version").get().user_version, 2);
+  assert.equal(db.prepare("PRAGMA user_version").get().user_version, 3);
   const team = addTeam("Test patrol", account.id);
   removeTeam(team.id, account.id);
   const events = nextBatch(db).events;
@@ -77,7 +77,7 @@ test("upgrading an existing version-one database bootstraps records once and cap
     db.prepare("UPDATE incidents SET payload=? WHERE id=2").run(JSON.stringify({ id: "002" }));
     assert.equal(nextBatch(db).events.at(-1).entity, "incident");
     assert.equal(nextBatch(db).events.at(-1).payload.id, "002");
-    db.exec("PRAGMA user_version=3"); assert.throws(() => migrateSync(db), /newer application/);
+    db.exec("PRAGMA user_version=4"); assert.throws(() => migrateSync(db), /newer application/);
   } finally { db.close(); }
 });
 

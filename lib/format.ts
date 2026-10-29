@@ -1,3 +1,14 @@
+import type { Alert } from "./types";
+
+export function incidentPositionLabel(basis: Alert["locationBasis"]): string {
+  switch (basis) {
+    case "node_gps": return "Recording node GPS";
+    case "node_last_known": return "Recording node's last known GPS";
+    case "node_configured": return "Configured recording node position";
+    case undefined: return "Estimated position";
+  }
+}
+
 export function formatCoords(lat: number, lng: number): string {
   return `${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E`;
 }

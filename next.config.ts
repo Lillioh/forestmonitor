@@ -9,6 +9,9 @@ const nextConfig: NextConfig = {
     "/api/maps": ["./public/maps/mapawa_malasag.pmtiles", "./public/maps/outpost.pmtiles"],
     "/api/maps/archive": ["./public/maps/mapawa_malasag.pmtiles", "./public/maps/outpost.pmtiles"],
   },
+  outputFileTracingExcludes: {
+    "*": ["./data/**", "./receiver/**", "./.env.receiver.local"],
+  },
 };
 
 export default nextConfig;

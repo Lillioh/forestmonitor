@@ -40,7 +40,7 @@ export default function CoordinateMap() {
         })}
         {active.map((alert) => {
           const p = project(alert);
-          return <a key={alert.id} href={`/incidents/${alert.id}`} aria-label={`Open ${alert.code}: ${alert.classification}`}><title>{alert.code} · {alert.classification} · {alert.confidence}% confidence{alert.source === "SIMULATION" ? " · SIMULATED" : ""}</title><circle cx={p.x} cy={p.y} r={Math.max(5, alert.radiusM * scale)} fill="#e95b47" fillOpacity="0.15" stroke="#e95b47" /><circle cx={p.x} cy={p.y} r="5" fill="#e95b47" /><text x={p.x + 9} y={p.y - 8} fill="var(--text)" fontSize="10">#{alert.id}</text></a>;
+          return <a key={alert.id} href={`/incidents/${alert.id}`} aria-label={`Open ${alert.code}: ${alert.classification}`}><title>{alert.code} · {alert.classification} · {alert.confidence}% confidence{alert.locationBasis ? " · Reporting node position" : ""}{alert.source === "SIMULATION" ? " · SIMULATED" : ""}</title>{alert.radiusM !== null && <circle cx={p.x} cy={p.y} r={Math.max(5, alert.radiusM * scale)} fill="#e95b47" fillOpacity="0.15" stroke="#e95b47" />}<circle cx={p.x} cy={p.y} r="5" fill="#e95b47" /><text x={p.x + 9} y={p.y - 8} fill="var(--text)" fontSize="10">#{alert.id}</text></a>;
         })}
       </svg>
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-[10px] text-[var(--text-muted)]"><span>{active.length} active detections · {sensors.length} configured sensors</span><Link href="/alerts" className="text-[var(--accent)] hover:underline">Open alert log</Link></div>

@@ -31,7 +31,7 @@ export default function SensorNodesPage() {
           text-[var(--text-muted)]
         "
       >
-        Mesh Management &amp; Node Health Status
+        Sensor positions &amp; Wi-Fi receiver status
       </p>
 
       <div className="mb-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -75,8 +75,7 @@ export default function SensorNodesPage() {
               text-[var(--text-muted)]
             "
           >
-            No node events logged yet — the mesh will report
-            sync and calibration events as they happen.
+            No node events logged yet. Authenticated GPS and audio uploads appear here.
           </p>
         ) : (
           <div className="max-h-72 overflow-y-auto">
