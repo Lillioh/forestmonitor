@@ -1,7 +1,7 @@
 interface SensorCardProps {
   name: string;
-  signal: number;
-  battery: number;
+  signal: number | null;
+  battery: number | null;
   status: string;
 }
 
@@ -64,7 +64,7 @@ function Metric({
   value,
 }: {
   label: string;
-  value: number;
+  value: number | null;
 }) {
   return (
     <div className="flex items-center gap-2">
@@ -83,7 +83,7 @@ function Metric({
         <div
           className="h-full rounded-full"
           style={{
-            width: `${value}%`,
+            width: `${value ?? 0}%`,
             backgroundColor: "var(--status-online)",
           }}
         />
@@ -95,7 +95,7 @@ function Metric({
           text-[var(--text-muted)]
         "
       >
-        {value}%
+        {value === null ? "—" : `${value}%`}
       </span>
     </div>
   );

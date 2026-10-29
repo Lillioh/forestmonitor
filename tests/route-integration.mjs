@@ -20,6 +20,7 @@ const password = "Isolated route test password 2026";
 const base = "http://outpost.local:3000";
 const fixtureMongoUri = "mongodb://isolated-route-fixture.invalid/test";
 const originalMongoUri = process.env.MONGODB_URI;
+const originalIngestToken = process.env.FOREST_INGEST_TOKEN;
 
 async function request(path, { method = "GET", cookie, body, origin = base, serverOrigin = base, host, headers = {} } = {}) {
   const segments = path.split("/");
@@ -115,11 +116,33 @@ try {
   assert.match(logout.headers.get("set-cookie"), /Max-Age=0/);
   assert.equal((await request("/api/state", { cookie: adminCookie })).status, 401);
   assert.equal((await request("/api/state", { cookie: operatorCookie })).status, 200);
+  delete process.env.FOREST_INGEST_TOKEN;
+  assert.equal((await request("/api/ingest", { method: "POST", body: {} })).status, 503);
+  process.env.FOREST_INGEST_TOKEN = "isolated-receiver-ingestion-token-2026";
+  assert.equal((await request("/api/ingest", { method: "POST", body: {} })).status, 401);
+  const ingestHeaders = { Authorization: `Bearer ${process.env.FOREST_INGEST_TOKEN}` };
+  assert.equal((await request("/api/ingest", { method: "POST", headers: ingestHeaders, body: { excessive: "x".repeat(17000) } })).status, 413);
+  const observation = {
+    version: 1, receiver_id: "11111111-2222-4333-8444-555555555555", sequence: 1, event_id: "1", node_id: "NODE-01",
+    received_at: Date.now(), gps: { fix: true, latitude: 8.4602, longitude: 124.7004 }, kind: "audio",
+    classification: { probability: 0.91, threshold: 0.6, detected: true, model_sha256: "a".repeat(64) },
+  };
+  const accepted = await request("/api/ingest", { method: "POST", origin: null, headers: ingestHeaders, body: observation });
+  assert.equal(accepted.status, 201, await accepted.clone().text());
+  const acknowledgement = await accepted.json();
+  assert.equal(acknowledgement.accepted, true);
+  assert.equal((await request("/api/ingest", { method: "POST", headers: ingestHeaders, body: observation })).status, 200);
+  assert.equal((await request("/api/ingest", { method: "POST", headers: ingestHeaders, body: { ...observation, received_at: observation.received_at - 1 } })).status, 409);
+  const receivedState = await (await request("/api/state", { cookie: operatorCookie })).json();
+  assert.equal(receivedState.alerts.filter((alert) => alert.source === "SENSOR").length, 1);
+  assert.equal(receivedState.alerts.find((alert) => alert.id === acknowledgement.alert_id).radiusM, null);
+  assert.equal(receivedState.sensors.find((sensor) => sensor.id === "NODE-01").lat, observation.gps.latitude);
   process.env.FOREST_COOKIE_SECURE = "true";
   const secureLogin = await request("/api/auth/login", { method: "POST", origin: "https://outpost.local:3000", body: { username: "admin", password } });
   assert.equal(secureLogin.status, 200);
   assert.match(secureLogin.headers.get("set-cookie"), /; Secure/i);
   process.env.FOREST_DEPLOYMENT = "cloud";
+  assert.equal((await request("/api/ingest", { method: "POST", headers: ingestHeaders, body: observation })).status, 404);
   delete process.env.MONGODB_URI;
   const unavailableHealth = await request("/api/health");
   assert.equal(unavailableHealth.status, 503);
@@ -165,6 +188,7 @@ try {
   delete process.env.FOREST_DEPLOYMENT;
   globalThis.__forestMongoClients?.delete(fixtureMongoUri);
   if (originalMongoUri === undefined) delete process.env.MONGODB_URI; else process.env.MONGODB_URI = originalMongoUri;
+  if (originalIngestToken === undefined) delete process.env.FOREST_INGEST_TOKEN; else process.env.FOREST_INGEST_TOKEN = originalIngestToken;
   getDatabase().close();
   const absolute = resolve(directory);
   assert.ok(absolute.startsWith(resolve(tmpdir()) + sep) && basename(absolute).startsWith("forest-monitor-routes-"));

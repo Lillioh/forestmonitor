@@ -42,13 +42,13 @@ Use a trusted LAN. HTTP does not encrypt passwords in transit; use local HTTPS w
 
 ## Monitoring data
 
-- Sensor coordinates use the configured three-node triangle. Nodes start offline until real telemetry is integrated; no simulated data is generated automatically.
+- Nodes start offline at their configured positions. The [ESP32 Wi-Fi receiver](receiver/README.md) accepts authenticated GPS and audio uploads, updates node positions, and forwards positive chainsaw classifications into the incident log. Nodes become degraded after 90 seconds without an upload or when GPS has no fix, and offline after three minutes. No simulated data is generated automatically.
 - Administrator test detections are available only with `FOREST_SIMULATION_ENABLED=true`. They are persisted and clearly marked `SIMULATION`.
 - Response time measures detection to first dispatch; resolution has its own timestamp. Actions and settings changes are committed transactionally and audited.
 - The incident timeline shows recorded detection, dispatch, and closure times. TDoA pair delays are displayed separately; inference-stage completion times are not assumed.
 - Dashboard clients poll the authenticated local state endpoint every five seconds and reload state after mutations. Refreshing or restarting does not discard saved records.
 - MapLibre renders a local vector basemap with roads, buildings, land cover, water, configured sensors, active incidents, and uncertainty areas. No Google scripts, remote tiles, fonts, or icons are fetched during normal operation.
-- ESP32/LoRa ingestion, Raspberry Pi ML/TDoA inference, real audio recordings, and notification delivery remain separate integration work. The existing waveform is an explicitly labeled demonstration, not recorded evidence.
+- The Wi-Fi receiver runs the supplied float32 TFLite model on the Pi; you must provide the model and validate it against labeled recordings. It does not calculate TDoA or locate a sound source. Wi-Fi incidents are marked at the reporting node's current, last-known, or configured position, with no invented accuracy radius. Raw audio is discarded after classification. LoRa ingestion and notification delivery remain separate integration work. Historical/demo waveforms are explicitly labeled demonstrations, not recorded evidence.
 
 ## Offline geographic map
 
@@ -130,6 +130,8 @@ npm run map:assets -- --check
 npm run test:routes
 npm run test:http
 ```
+
+For the Python receiver, install `receiver/requirements.txt` in its own Python 3.11 through 3.13 environment and run the tests documented in [receiver/README.md](receiver/README.md). `tests/wifi-e2e.py` tests actual receiver-to-dashboard HTTP delivery with an injected classifier; it does not validate model accuracy. Keep the receiver spool and app database together in device backups so receiver identities, event counters, and acknowledgments remain consistent.
 
 Tests use isolated temporary databases. The compiled route check tests actual Next request/cookie contexts without sockets; the HTTP smoke check starts a production server and requires loopback networking. If Turbopack cannot launch its CSS worker in a restricted Windows environment, build with `npm run build -- --webpack`. No cloud credentials are required. Existing browser-only simulated incidents from earlier versions cannot be migrated after they have been discarded; earlier versions did not persist them.
 

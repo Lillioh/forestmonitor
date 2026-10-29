@@ -30,6 +30,9 @@ export default function NodeDetailCard({
           <p className="text-[10px] text-[var(--text-muted)]">
             {node.lat.toFixed(4)}° N, {node.lng.toFixed(4)}° E
           </p>
+          <p className="text-[10px] text-[var(--text-muted)]">
+            {node.gpsFix === true ? "Reported GPS fix" : node.lastGpsAt ? "Last known GPS position; no current fix" : "Configured node position; GPS not available"}
+          </p>
         </div>
 
         <span
@@ -59,7 +62,7 @@ export default function NodeDetailCard({
               text-[var(--text-muted)]
             "
           >
-            {node.uptimeHours.toLocaleString()} hrs UPTIME
+            {node.uptimeHours === null ? "Uptime not reported" : `${node.uptimeHours.toLocaleString()} hrs UPTIME`}
           </span>
         </span>
       </div>
@@ -101,7 +104,7 @@ export default function NodeDetailCard({
               text-[var(--text)]
             "
           >
-            {node.lastSyncAt ? `${node.coreTemp.toFixed(1)} °C` : "No telemetry"}
+            {node.coreTemp === null || !node.lastSyncAt ? "Not reported" : `${node.coreTemp.toFixed(1)} °C`}
           </span>
         </div>
 
@@ -147,6 +150,7 @@ export default function NodeDetailCard({
           </span>
         </div>
       </div>
+      {node.lastClassification && <p className="mt-3 text-[10px] text-[var(--text-muted)]">Latest audio: {node.lastClassification.detected ? "chainsaw detected" : "background noise"} · {(node.lastClassification.probability * 100).toFixed(1)}% chainsaw score</p>}
     </div>
   );
 }

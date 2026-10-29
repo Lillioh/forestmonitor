@@ -108,7 +108,7 @@ export default function AlertLogPage() {
       lng: a.lng,
       classification: a.classification,
       confidence: a.confidence,
-      radius_m: a.radiusM,
+      radius_m: a.radiusM ?? "",
       status: a.status,
       zone: a.zone,
       node: a.nodeId,
@@ -305,7 +305,7 @@ export default function AlertLogPage() {
                       text-[var(--text-muted)]
                     "
                   >
-                    ±{alert.radiusM}m
+                    {alert.radiusM === null ? "Not estimated" : `±${alert.radiusM}m`}
                   </td>
 
                   <td className="px-3 py-2">
