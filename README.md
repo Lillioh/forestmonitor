@@ -4,7 +4,7 @@ An offline outpost dashboard for acoustic forest monitoring. Next.js serves the 
 
 ## Raspberry Pi 4 Model B (8 GB)
 
-- Use a 64-bit Linux OS and **Node.js 24.15 or newer within the 24.x LTS line**, with npm. This application uses Node's built-in `node:sqlite`; no MongoDB, Supabase, database daemon, or native npm database addon is required.
+- Use a 64-bit Linux OS and the latest patched **Node.js 24.x LTS release**, at least 24.15, with npm. This application uses Node's built-in `node:sqlite`; no MongoDB, Supabase, database daemon, or native npm database addon is required.
 - Initial software installation requires internet access or preloaded dependencies. Normal operation does not.
 - Keep the database on local storage, preferably an SSD, not a network share. Reserve CPU/RAM for the separate ML/TDoA process.
 
@@ -12,9 +12,11 @@ An offline outpost dashboard for acoustic forest monitoring. Next.js serves the 
 npm ci
 cp .env.example .env.local
 npm run account:create
-npm run build
+npm run build -- --webpack
 npm start -- --hostname 0.0.0.0
 ```
+
+Install dependencies on the Pi with `npm ci` so npm selects Linux ARM64 binaries from the committed lockfile. Do not copy `node_modules` from Windows or another architecture. Run `npm audit --audit-level=low` to check the locked dependencies against current security advisories before deployment. After a dependency update, rerun the checks below and rebuild before restarting the services.
 
 During account creation, choose a username, display name, role (`admin` for the initial administrator), and a unique password of 12–128 characters. Password entry is hidden. There are **no default credentials and no public signup**. Create subsequent operator accounts with the same command on the Pi. Reset a forgotten password using `npm run account:reset`; it revokes that user's sessions.
 
@@ -122,6 +124,7 @@ npm run dev
 npm run lint
 npm run typecheck
 npm test
+npm audit --audit-level=low
 npm run map:assets -- --check
 # After a production build:
 npm run test:routes
