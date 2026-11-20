@@ -5,12 +5,12 @@ export default function MetricBar({
   invert = false,
 }: {
   label: string;
-  value: number;
+  value: number | null;
   suffix?: string;
   invert?: boolean;
 }) {
-  const good = invert ? value < 40 : value >= 60;
-  const warn = invert ? value < 70 : value >= 30;
+  const good = value !== null && (invert ? value < 40 : value >= 60);
+  const warn = value !== null && (invert ? value < 70 : value >= 30);
 
   const color = good
     ? "var(--status-online)"
@@ -40,7 +40,7 @@ export default function MetricBar({
         <div
           className="h-full rounded-full transition-all"
           style={{
-            width: `${Math.min(100, value)}%`,
+            width: `${Math.min(100, value ?? 0)}%`,
             backgroundColor: color,
           }}
         />
@@ -53,8 +53,7 @@ export default function MetricBar({
           text-[var(--text)]
         "
       >
-        {value}
-        {suffix}
+        {value === null ? "Not reported" : `${value}${suffix}`}
       </span>
     </div>
   );

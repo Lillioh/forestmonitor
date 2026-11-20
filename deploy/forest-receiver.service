@@ -1,0 +1,19 @@
+[Unit]
+Description=Forest Monitor Wi-Fi receiver
+After=network.target
+
+[Service]
+Type=simple
+# Replace both placeholders with the current user and the absolute checkout path.
+User=YOUR_USER
+WorkingDirectory=YOUR_CHECKOUT
+EnvironmentFile=YOUR_CHECKOUT/.env.receiver.local
+ExecStart=YOUR_CHECKOUT/receiver/.venv/bin/python YOUR_CHECKOUT/receiver/main.py
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

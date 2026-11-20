@@ -29,7 +29,7 @@ export interface Alert {
   lng: number;
   classification: Classification;
   confidence: number; // 0-100
-  radiusM: number;
+  radiusM: number | null;
   status: AlertStatus;
   zone: string;
   nodeId: string;
@@ -38,6 +38,8 @@ export interface Alert {
   tdoa: TdoaPair[];
   priority: "HIGH" | "MEDIUM" | "LOW";
   source?: "SENSOR" | "SIMULATION";
+  locationBasis?: "node_gps" | "node_last_known" | "node_configured";
+  modelSha256?: string;
   dispatchedAt?: number;
   resolvedAt?: number;
 }
@@ -51,14 +53,20 @@ export interface SensorNode {
   role: NodeRole;
   lat: number;
   lng: number;
-  signal: number;
-  battery: number;
-  coreTemp: number;
-  uptimeHours: number;
+  signal: number | null;
+  battery: number | null;
+  coreTemp: number | null;
+  uptimeHours: number | null;
   firmware: string;
   deployed: string;
   lastSyncAt: number;
   status: NodeStatus;
+  gpsFix?: boolean;
+  lastGpsAt?: number;
+  configuredPosition?: { lat: number; lng: number };
+  receiverId?: string;
+  receiverSequence?: number;
+  lastClassification?: { probability: number; threshold: number; detected: boolean; model_sha256: string; receivedAt: number };
 }
 
 export interface MeshLink {
@@ -73,6 +81,7 @@ export interface NodeEvent {
   nodeId: string;
   type: string;
   details: string;
+  classification?: { probability: number; threshold: number; detected: boolean; model_sha256: string };
 }
 
 export interface MonitoringSettings {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useAlerts } from "@/context/AlertsContext";
-import { formatCoords, formatRelativeTime } from "@/lib/format";
+import { formatCoords, formatRelativeTime, incidentPositionLabel } from "@/lib/format";
 import { useNow } from "@/lib/use-now";
 import { recordedIncidentTimeline } from "@/lib/incident-timeline";
 import Link from "next/link";
@@ -102,7 +102,7 @@ export default function IncidentDetailView({ id }: { id: string }) {
         <div className="space-y-4 xl:col-span-2">
 
           {alert.source === "SIMULATION" && <p className="rounded border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-300">SIMULATED DETECTION — generated for testing, not sensor evidence.</p>}
-          <AudioWaveform seed={Number(alert.id)} />
+          {alert.locationBasis ? <p className="rounded border border-[var(--border)] p-3 text-xs text-[var(--text-muted)]">Audio was analysed on the Raspberry Pi. The raw recording is not retained or available for playback.</p> : <AudioWaveform seed={Number(alert.id)} />}
 
           {/* TDoA Analysis */}
           <div
@@ -118,7 +118,7 @@ export default function IncidentDetailView({ id }: { id: string }) {
                 text-[var(--text-muted)]
               "
             >
-              Time Difference of Arrival (TDoA) Analysis
+              {alert.locationBasis ? "Recording node position" : "Time Difference of Arrival (TDoA) Analysis"}
             </p>
 
             <div className="space-y-2">
@@ -146,10 +146,10 @@ export default function IncidentDetailView({ id }: { id: string }) {
             </div>
 
             <p className="mt-3 text-[10px] text-[var(--text-muted)]">
-              Estimated position:{" "}
-              {formatCoords(alert.lat, alert.lng)} · Radius ±
-              {alert.radiusM}m
+              {incidentPositionLabel(alert.locationBasis)}: {formatCoords(alert.lat, alert.lng)}
+              {alert.radiusM !== null && ` · Radius ±${alert.radiusM}m`}
             </p>
+            {alert.locationBasis && <p className="mt-2 text-[10px] text-[var(--text-muted)]">This is the reporting node&apos;s position. The chainsaw location, location accuracy, and TDoA have not been calculated. Detection time is when the receiver accepted the upload.</p>}
           </div>
 
           {/* Incident Timeline */}

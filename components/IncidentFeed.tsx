@@ -1,7 +1,7 @@
 "use client";
 
 import { useAlerts } from "@/context/AlertsContext";
-import { formatCoords, formatRelativeTime } from "@/lib/format";
+import { formatCoords, formatRelativeTime, incidentPositionLabel } from "@/lib/format";
 import type { Alert } from "@/lib/types";
 import { useNow } from "@/lib/use-now";
 import Link from "next/link";
@@ -75,7 +75,7 @@ export default function IncidentFeed() {
               text-[var(--text-muted)]
             "
           >
-            No detections recorded. Sensor ingestion has not been connected yet.
+            No detections recorded. Waiting for a positive sensor classification.
           </div>
         ) : (
           <div className="space-y-2">
@@ -155,6 +155,7 @@ function IncidentCard({
 
       {/* Coordinates */}
       {incident.source === "SIMULATION" && <p className="mt-2 text-[9px] font-bold text-amber-600 dark:text-amber-300">SIMULATED DETECTION</p>}
+      {incident.locationBasis && <p className="mt-2 text-[9px] text-[var(--text-muted)]">{incidentPositionLabel(incident.locationBasis)}</p>}
       <p className="mt-2 font-mono text-[10px] text-[var(--text)]">
         {formatCoords(incident.lat, incident.lng)}
       </p>
@@ -165,9 +166,9 @@ function IncidentCard({
         <span className="text-[var(--text)]">
           {incident.confidence.toFixed(1)}%
         </span>{" "}
-        Radius:{" "}
+        {incident.radiusM === null ? "Sound-source position not estimated" : "Radius: "}
         <span className="text-[var(--text)]">
-          ±{incident.radiusM}m
+          {incident.radiusM === null ? "" : `±${incident.radiusM}m`}
         </span>
       </p>
 

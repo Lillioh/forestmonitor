@@ -182,10 +182,10 @@ export function driftTelemetry(
   node: SensorNode,
   now: number
 ): SensorNode {
-  const signal = clampDrift(node.signal, 3, 55, 99);
-  const battery = clampDrift(node.battery, 0.6, 12, 100);
+  const signal = clampDrift(node.signal ?? 80, 3, 55, 99);
+  const battery = clampDrift(node.battery ?? 80, 0.6, 12, 100);
   const coreTemp = Number(
-    clampDrift(node.coreTemp, 0.3, 20, 32).toFixed(1)
+    clampDrift(node.coreTemp ?? 25, 0.3, 20, 32).toFixed(1)
   );
 
   const status: SensorNode["status"] =
@@ -204,7 +204,7 @@ export function driftTelemetry(
     battery: Math.round(battery),
     coreTemp,
     status,
-    uptimeHours: node.uptimeHours + 1 / 60,
+    uptimeHours: (node.uptimeHours ?? 0) + 1 / 60,
     lastSyncAt: shouldSync ? now : node.lastSyncAt,
   };
 }

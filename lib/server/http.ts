@@ -25,6 +25,14 @@ export async function readMutation(request: Request): Promise<Record<string, unk
   if (request.headers.get("origin") !== expected.origin) {
     throw new StoreError("The request must come from this outpost's dashboard.", 403);
   }
+  return readJson(request);
+}
+
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+export async function readJson(request: Request): Promise<Record<string, unknown>> {
   if (!request.headers.get("content-type")?.includes("application/json")) throw new StoreError("Expected JSON.", 415);
   const reader = request.body?.getReader();
   if (!reader) throw new StoreError("A request body is required.");
@@ -40,8 +48,8 @@ export async function readMutation(request: Request): Promise<Record<string, unk
   let parsed: unknown;
   try { parsed = JSON.parse(Buffer.concat(chunks).toString("utf8")); }
   catch { throw new StoreError("Invalid JSON."); }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new StoreError("Expected a JSON object.");
-  return parsed as Record<string, unknown>;
+  if (!isJsonObject(parsed)) throw new StoreError("Expected a JSON object.");
+  return parsed;
 }
 
 export function apiError(error: unknown) {
