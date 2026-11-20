@@ -21,6 +21,7 @@ const base = "http://outpost.local:3000";
 const fixtureMongoUri = "mongodb://isolated-route-fixture.invalid/test";
 const originalMongoUri = process.env.MONGODB_URI;
 const originalIngestToken = process.env.FOREST_INGEST_TOKEN;
+const originalCloudDeviceId = process.env.FOREST_CLOUD_DEVICE_ID;
 
 async function request(path, { method = "GET", cookie, body, origin = base, serverOrigin = base, host, headers = {} } = {}) {
   const segments = path.split("/");
@@ -160,12 +161,13 @@ try {
   } finally { console.error = originalError; }
   assert.equal((await request("/api/sync", { method: "POST", body: {} })).status, 401);
   assert.equal((await request("/api/sync", { method: "POST", body: {}, headers: { Authorization: "Bearer isolated-test-token" } })).status, 400);
-  // Supply only the read operations needed for cloud session verification.
+  // Supply only the reads needed for cloud sessions and the unconfigured dashboard.
   // Every mutation must be denied before it reaches any monitoring datastore.
   const fixtureUser = { _id: 9001, username: "cloudadmin", name: "Cloud Admin", role: "admin", passwordHash: "isolated-fixture-hash" };
   const fixtureDatabase = { async command(value) { assert.deepEqual(value, { ping: 1 }); return { ok: 1 }; }, collection(name) {
     if (name === "users") return { findOne: async () => fixtureUser };
     if (name === "sessions") return { findOne: async () => ({ userId: fixtureUser._id, credentialVersion: createHash("sha256").update(fixtureUser.passwordHash).digest("hex") }) };
+    if (name === "devices") return { findOne: async () => null };
     throw new Error("Cloud mutation reached a datastore instead of being rejected.");
   } };
   process.env.MONGODB_URI = fixtureMongoUri;
@@ -173,8 +175,22 @@ try {
   const cloudHealth = await request("/api/health");
   assert.equal(cloudHealth.status, 200);
   assert.deepEqual(await cloudHealth.json(), { status: "ok" });
+  const cloudCookie = `forest_session=${"x".repeat(43)}`;
+  for (const deviceId of [undefined, "unregistered-outpost"]) {
+    if (deviceId === undefined) delete process.env.FOREST_CLOUD_DEVICE_ID;
+    else process.env.FOREST_CLOUD_DEVICE_ID = deviceId;
+    const dashboard = await request("/api/state", { cookie: cloudCookie });
+    assert.equal(dashboard.status, 200, await dashboard.clone().text());
+    const state = await dashboard.json();
+    assert.equal(state.readOnly, true);
+    assert.deepEqual(state.sensors, []);
+    assert.deepEqual(state.alerts, []);
+    assert.equal(state.sync.enabled, false);
+    assert.match(state.sync.error, /link the Raspberry Pi/);
+    assert.equal((await request("/api/maps", { cookie: cloudCookie })).status, 200);
+  }
   for (const [path, method, body] of [["/api/settings", "PATCH", {}], ["/api/teams", "POST", {}], ["/api/teams/qrt-a", "DELETE", {}], ["/api/alerts", "POST", {}], ["/api/alerts/001", "PATCH", { action: "dispatch" }]]) {
-    const denied = await request(path, { method, body, cookie: `forest_session=${"x".repeat(43)}`, origin: "https://outpost.local:3000" });
+    const denied = await request(path, { method, body, cookie: cloudCookie, origin: "https://outpost.local:3000" });
     assert.equal(denied.status, 403, await denied.clone().text());
     assert.match((await denied.json()).error, /read-only/);
   }
@@ -189,6 +205,7 @@ try {
   globalThis.__forestMongoClients?.delete(fixtureMongoUri);
   if (originalMongoUri === undefined) delete process.env.MONGODB_URI; else process.env.MONGODB_URI = originalMongoUri;
   if (originalIngestToken === undefined) delete process.env.FOREST_INGEST_TOKEN; else process.env.FOREST_INGEST_TOKEN = originalIngestToken;
+  if (originalCloudDeviceId === undefined) delete process.env.FOREST_CLOUD_DEVICE_ID; else process.env.FOREST_CLOUD_DEVICE_ID = originalCloudDeviceId;
   getDatabase().close();
   const absolute = resolve(directory);
   assert.ok(absolute.startsWith(resolve(tmpdir()) + sep) && basename(absolute).startsWith("forest-monitor-routes-"));

@@ -91,7 +91,9 @@ export function AlertsProvider({ children, initialState, user }: { children: Rea
   return (
     <AlertsContext.Provider value={value}>
       <div className="flex h-full min-h-0 flex-col">
-        {state.readOnly && <p role="status" className="shrink-0 bg-blue-100 px-4 py-2 text-xs text-blue-950">Cloud view - read-only. Last outpost contact: {state.sync.lastSyncedAt ? new Date(state.sync.lastSyncedAt).toLocaleString("en-PH", { timeZone: "Asia/Manila" }) : "waiting for first upload"}. Updates arrive when the Pi has internet access.</p>}
+        {state.readOnly && <p role="status" className="shrink-0 bg-blue-100 px-4 py-2 text-xs text-blue-950">
+          Cloud view is read-only. {state.sync.error ?? <>Last outpost contact: {state.sync.lastSyncedAt ? new Date(state.sync.lastSyncedAt).toLocaleString("en-PH", { timeZone: "Asia/Manila" }) : "waiting for first upload"}. Updates arrive when the Pi has internet access.</>}
+        </p>}
         {!state.readOnly && state.sync.enabled && <p role="status" className="shrink-0 bg-[var(--surface)] px-4 py-1 text-[10px] text-[var(--text-muted)]">Cloud mirror: {state.sync.pending ? `${state.sync.pending} changes queued` : "up to date"}{state.sync.error ? ` - ${state.sync.error} Local operation remains available.` : ""}</p>}
         {!connected && <p role="status" className="shrink-0 bg-amber-100 px-4 py-2 text-xs text-amber-950">Connection to the outpost server was lost. Showing the last received data; reconnecting automatically.</p>}
         {error && <div role="alert" className="flex shrink-0 items-center justify-between gap-3 bg-red-100 px-4 py-2 text-xs text-red-950"><span>{error}</span><button type="button" onClick={() => setError(null)} className="underline">Dismiss</button></div>}

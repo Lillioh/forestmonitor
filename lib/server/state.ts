@@ -3,7 +3,7 @@ import { initializeMonitoring, readState } from "./monitoring.mjs";
 import { isCloud } from "./deployment.mjs";
 
 export async function monitoringState() {
-  if (isCloud()) return (await import("./cloud/mirror.mjs")).cloudState();
+  if (isCloud()) return (await import("./cloud/mirror.mjs")).cloudState({ allowUnconfigured: true });
   initializeMonitoring({
     sensors: INITIAL_SENSOR_NODES,
     teams: DISPATCH_TEAMS,
