@@ -52,9 +52,9 @@ Use a trusted LAN. HTTP does not encrypt passwords in transit; use local HTTPS w
 
 ## Offline geographic map
 
-The repository includes `public/maps/mapawa_malasag.pmtiles`: **1,415,845 bytes, 100 tiles, zooms 0-15**, bounding box **124.66,8.42,124.75,8.475** (west,south,east,north). It covers the project's configured Mapawa / Malasag sensor area near Cagayan de Oro. The renderer can zoom further by enlarging existing vector tiles. It does not add detail beyond zoom 15, provide satellite imagery, or calculate routes. Position estimates still come from the application's sensor data; a basemap does not improve TDoA accuracy.
+The bundled map at `public/maps/mapawa_malasag.pmtiles` covers Iligan City, central Cagayan de Oro, and the Mapawa–Malasag sensor area. The file contains 4,769 addressed tiles at zooms 8–15 and uses 12,706,615 bytes. Its bounds are `124.14,7.96,124.80,8.58` (west, south, east, north). At higher zooms the renderer enlarges the existing vector tiles.
 
-The source is the Protomaps 2026-10-26 daily archive, schema 4.15.2. Sources, sizes, and SHA-256 hashes are in `public/maps/asset-manifest.json`. Fonts, sprites, and their licenses are bundled alongside the archive. OpenStreetMap attribution remains on the map. Run `npm run map:assets -- --check` to verify all bundled assets without internet. To re-download the pinned fonts/icons while online, run `npm run map:assets`; it rejects changed upstream bytes.
+The map uses the Protomaps 2026-11-18 daily archive with schema 4.15.2. Sources, sizes, and SHA-256 hashes are in `public/maps/asset-manifest.json`. Fonts, sprites, and their licenses are bundled alongside the archive. Run `npm run map:assets -- --check` to verify all bundled assets offline. To re-download the pinned fonts and icons, run `npm run map:assets` while online. The command verifies the downloads against their pinned hashes.
 
 To prepare a different region while online:
 

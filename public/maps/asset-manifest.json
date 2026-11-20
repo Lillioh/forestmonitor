@@ -169,18 +169,18 @@
   },
   "archive": {
     "path": "mapawa_malasag.pmtiles",
-    "source": "https://build.protomaps.com/20261026.pmtiles",
+    "source": "https://build.protomaps.com/20261118.pmtiles",
     "bounds": [
-      124.45,
-      8.25,
-      124.95,
-      8.6
+      124.14,
+      7.96,
+      124.8,
+      8.58
     ],
-    "minZoom": 0,
+    "minZoom": 8,
     "maxZoom": 15,
-    "tiles": 2046,
-    "bytes": 10155889,
-    "sha256": "d12109b26949a1ab01bb901e915351ef634a58c955e0f83e6d02de5e81b1ce1e",
+    "tiles": 4769,
+    "bytes": 12706615,
+    "sha256": "ef9346c62b07bfad193bc36cf24ab31de89242e56207962c4a4f6dd9deb346cc",
     "license": "Open Database License (ODbL); OpenStreetMap contributors; Protomaps"
   }
 }
