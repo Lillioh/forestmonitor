@@ -2,9 +2,34 @@
 
 import { useAlerts } from "@/context/AlertsContext";
 import { formatCoords, formatRelativeTime, incidentPositionLabel } from "@/lib/format";
+import {
+  FEED_CLEARED_EVENT,
+  FEED_CLEARED_STORAGE_KEY,
+  alertFeedKey,
+  filterVisibleFeedAlerts,
+  parseClearedFeedKeys,
+} from "@/lib/incident-feed";
 import type { Alert } from "@/lib/types";
 import { useNow } from "@/lib/use-now";
 import Link from "next/link";
+import { useMemo, useSyncExternalStore } from "react";
+
+function subscribeClearedFeed(listener: () => void) {
+  window.addEventListener("storage", listener);
+  window.addEventListener(FEED_CLEARED_EVENT, listener);
+  return () => {
+    window.removeEventListener("storage", listener);
+    window.removeEventListener(FEED_CLEARED_EVENT, listener);
+  };
+}
+
+function clearedFeedSnapshot(): string {
+  try {
+    return localStorage.getItem(FEED_CLEARED_STORAGE_KEY) ?? "[]";
+  } catch {
+    return "[]";
+  }
+}
 
 export default function IncidentFeed() {
   const {
@@ -18,6 +43,30 @@ export default function IncidentFeed() {
   } = useAlerts();
 
   const now = useNow();
+  const clearedRaw = useSyncExternalStore(subscribeClearedFeed, clearedFeedSnapshot, () => "[]");
+  const clearedKeys = useMemo(() => new Set(parseClearedFeedKeys(clearedRaw)), [clearedRaw]);
+  const visibleAlerts = useMemo(
+    () => filterVisibleFeedAlerts(alerts, clearedKeys),
+    [alerts, clearedKeys],
+  );
+  const hiddenCount = alerts.length - visibleAlerts.length;
+
+  function writeClearedKeys(keys: string[]) {
+    try {
+      localStorage.setItem(FEED_CLEARED_STORAGE_KEY, JSON.stringify(keys));
+    } catch {
+      return;
+    }
+    window.dispatchEvent(new Event(FEED_CLEARED_EVENT));
+  }
+
+  function handleClearAll() {
+    writeClearedKeys(alerts.map(alertFeedKey));
+  }
+
+  function handleRestoreHidden() {
+    writeClearedKeys([]);
+  }
 
   return (
     <aside
@@ -26,31 +75,52 @@ export default function IncidentFeed() {
         border-l border-[var(--border)]
         bg-[var(--panel)]
         lg:flex lg:flex-col
-        lg:h-[calc(100vh-56px)]
+        lg:h-full
         lg:overflow-hidden
       "
     >
       {/* Header */}
       <div className="shrink-0 p-3 pb-2">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <h2 className="text-xs font-bold tracking-wide text-[var(--text)]">
             INCIDENT FEED
           </h2>
 
-          {simulationEnabled && user.role === "admin" && <button
-            onClick={triggerDetection}
-            title="Manually simulate a new sensor detection (stand-in for the LoRa/Raspberry Pi feed, not yet connected)"
-            className="
-              rounded border border-[var(--border)]
-              px-2 py-1 text-[9px]
-              text-[var(--text-muted)]
-              transition
-              hover:bg-[var(--card)]
-              hover:text-[var(--text)]
-            "
-          >
-            + Simulate Ping
-          </button>}
+          <div className="flex items-center gap-1.5">
+            {simulationEnabled && user.role === "admin" && <button
+              type="button"
+              onClick={triggerDetection}
+              title="Manually simulate a new sensor detection (stand-in for the LoRa/Raspberry Pi feed, not yet connected)"
+              className="
+                rounded border border-[var(--border)]
+                px-2 py-1 text-[9px]
+                text-[var(--text-muted)]
+                transition
+                hover:bg-[var(--card)]
+                hover:text-[var(--text)]
+              "
+            >
+              + Simulate Ping
+            </button>}
+
+            {visibleAlerts.length > 0 && (
+              <button
+                type="button"
+                onClick={handleClearAll}
+                title="Clear items from this view only (alerts remain in Alert Log)"
+                className="
+                  rounded border border-[var(--border)]
+                  px-2 py-1 text-[9px]
+                  text-[var(--text-muted)]
+                  transition
+                  hover:bg-[var(--card)]
+                  hover:text-[var(--text)]
+                "
+              >
+                Clear All
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -66,7 +136,7 @@ export default function IncidentFeed() {
           [&::-webkit-scrollbar]:hidden
         "
       >
-        {alerts.length === 0 ? (
+        {visibleAlerts.length === 0 ? (
           <div
             className="
               rounded-md border border-dashed
@@ -75,11 +145,24 @@ export default function IncidentFeed() {
               text-[var(--text-muted)]
             "
           >
-            No detections recorded. Waiting for a positive sensor classification.
+            {hiddenCount > 0 ? (
+              <>
+                <p>Incident feed view cleared. All records remain in Alert Log.</p>
+                <button
+                  type="button"
+                  onClick={handleRestoreHidden}
+                  className="mt-2 rounded border border-[var(--border)] px-2.5 py-1 text-[9px] text-[var(--text-muted)] transition hover:bg-[var(--card)] hover:text-[var(--text)]"
+                >
+                  Show hidden ({hiddenCount})
+                </button>
+              </>
+            ) : (
+              "No detections recorded. Waiting for a positive sensor classification."
+            )}
           </div>
         ) : (
           <div className="space-y-2">
-            {alerts.map((incident) => (
+            {visibleAlerts.map((incident) => (
               <IncidentCard
                 key={incident.id}
                 incident={incident}
@@ -89,6 +172,17 @@ export default function IncidentFeed() {
                 onResolve={() => markResolved(incident.id)}
               />
             ))}
+            {hiddenCount > 0 && (
+              <div className="pt-1 text-center">
+                <button
+                  type="button"
+                  onClick={handleRestoreHidden}
+                  className="rounded border border-[var(--border)] px-2.5 py-1 text-[9px] text-[var(--text-muted)] transition hover:bg-[var(--card)] hover:text-[var(--text)]"
+                >
+                  Show {hiddenCount} cleared
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

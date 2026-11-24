@@ -26,7 +26,7 @@ export default function CoordinateMap() {
         <span className="text-xs font-semibold text-[var(--text)]">Local detection area</span>
         <span className="text-[10px] text-[var(--text-muted)]">Offline coordinate view · North up · No basemap</span>
       </div>
-      <svg viewBox="0 0 720 500" role="img" aria-labelledby="local-map-title local-map-description" className="max-h-[500px] w-full bg-[var(--panel)]">
+      <svg viewBox="0 0 720 500" role="img" aria-labelledby="local-map-title local-map-description" className="max-h-[560px] w-full bg-[var(--panel)]">
         <title id="local-map-title">Sensor positions and active acoustic detections</title>
         <desc id="local-map-description">A locally rendered coordinate plot with three sensor nodes, their detection triangle, and active incidents. Terrain and roads are not shown.</desc>
         <defs><pattern id="local-grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--border)" strokeWidth="1" /></pattern></defs>
@@ -35,7 +35,7 @@ export default function CoordinateMap() {
         <g fill="var(--text-muted)" fontSize="12"><text x="670" y="35">N ↑</text><text x="20" y="475">{Math.round(80 / scale)} m</text><path d="M 20 455 v 6 h 80 v -6" fill="none" stroke="var(--text-muted)" strokeWidth="2" /></g>
         {sensors.map((sensor) => {
           const p = project(sensor);
-          const color = sensor.status === "ONLINE" ? "var(--status-online)" : sensor.status === "DEGRADED" ? "var(--status-warning)" : "var(--text-muted)";
+          const color = sensor.status === "ONLINE" ? "var(--status-online)" : "var(--text-muted)";
           return <g key={sensor.id}><title>{sensor.name}: {sensor.status} · {formatCoords(sensor.lat, sensor.lng)}</title><circle cx={p.x} cy={p.y} r="8" fill={color} stroke="var(--card)" strokeWidth="3" /><text x={p.x} y={p.y - 17} textAnchor="middle" fill="var(--text)" fontSize="12" fontWeight="600">{sensor.name}</text><text x={p.x} y={p.y + 24} textAnchor="middle" fill="var(--text-muted)" fontSize="10">{sensor.status}</text></g>;
         })}
         {active.map((alert) => {

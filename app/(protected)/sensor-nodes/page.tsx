@@ -157,7 +157,7 @@ export default function SensorNodesPage() {
                         text-[var(--text-muted)]
                       "
                     >
-                      {event.details}
+                      {event.details.replace(/^Background classification:/, "NOT CHAINSAW classification:")}
                     </td>
                   </tr>
                 ))}

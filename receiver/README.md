@@ -57,6 +57,22 @@ Content-Length: 88200
 
 Use `X-GPS-Fix: 0` when there is no fix. Success includes `status`, `detected`, `chainsaw_probability`, `confidence`, and `result`. No filename is returned because recordings are not retained.
 
+## Verify ESP32 capture timing
+
+Update the Pi receiver and restart `forest-receiver`. Flash each ESP32 with the `ForestMonitorESP32` sketch and its `ClockSync.h` file. Keep the board-specific settings in each `node_config.h`. Open the Serial Monitor at 115200 baud and look for `[CLOCK] Pi time available` after Wi-Fi connects.
+
+The ESP32 uses authenticated `GET /clock` requests on the same port as `/upload`. A `204` response includes `X-Pi-Receive-Us`, `X-Pi-Send-Us`, and `X-Pi-Clock-Id`. These values describe the Pi's monotonic clock session. The clock ID changes when the receiver restarts.
+
+Each updated ESP32 sends `X-Audio-Start-Us` with the first sample time on its local clock. If it has a recent clock sample, it also sends `X-Audio-Pi-Clock-Id`, `X-Audio-Pi-Start-Us`, `X-Audio-Sync-Rtt-Us`, and `X-Audio-Sync-Age-Us`. The receiver stores these values in the local `audio_timing` table keyed by node and event ID. If the clock ID is stale, the receiver saves the local sample time and still classifies the clip. The timing estimates need a bench test before use in TDoA. This release records timing metadata while the live map continues to show the reporting node.
+
+After recording a clip, inspect the most recent stored timing rows on the Pi. Use the spool path configured in `RECEIVER_DATABASE`.
+
+```sh
+sqlite3 -readonly data/receiver/spool.sqlite 'SELECT node_id,event_id,timing FROM audio_timing ORDER BY rowid DESC LIMIT 6;'
+```
+
+## Queue retention and recovery
+
 The spool retains delivered receipts for 7 days by default (`RECEIVER_RECEIPT_SECONDS`); the receiver keeps a permanent per-node counter watermark after receipts expire. A retry whose receipt has expired is rejected with 409, never accepted as a new observation. Pending and quarantined records are never evicted. If the app rejects an observation with HTTP 400 or 409, the receiver logs the node and counter and quarantines it while continuing other deliveries. Investigate and repair the app or configuration, then follow an operator recovery procedure; quarantined records count toward the limit and are not marked delivered. The default 100,000-record total cap includes pending records and receipts; it returns 503 when full, so the sender must retry. SQLite pages are capped at 256 MiB and the WAL is checkpointed; storage/permissions failures also prevent acknowledgment. Monitor service logs and available disk and investigate prolonged app unavailability. App-side receipts also persist after receiver receipts expire. Removing the spool or rotating node credentials needs an explicit plan; never silently replace receiver identity.
 
 Run focused tests from the checkout with `PYTHONPATH=receiver receiver/.venv/bin/python -m unittest discover -s receiver/tests`.

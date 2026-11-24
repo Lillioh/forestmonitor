@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Bantay Gubat — Forest Outpost 03",
+  title: "Forest Monitor — Forest Outpost 03",
   description:
     "IoT/ML illegal logging detection dashboard — live acoustic sensor monitoring for protected forest areas.",
 };

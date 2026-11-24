@@ -45,7 +45,7 @@ export interface Alert {
 }
 
 export type NodeRole = "Root Gateway" | "Relay" | "Endpoint";
-export type NodeStatus = "ONLINE" | "OFFLINE" | "DEGRADED";
+export type NodeStatus = "ONLINE" | "OFFLINE";
 
 export interface SensorNode {
   id: string;

@@ -9,31 +9,29 @@ export default function Home() {
   const { sensors } = useAlerts();
 
   return (
-    <div className="flex min-h-0 flex-1 bg-[var(--background)]">
+    <div className="flex min-h-full lg:h-full bg-[var(--background)]">
 
       {/* Main Dashboard Area */}
-      <div className="flex min-w-0 flex-1 flex-col p-5">
+      <div className="flex min-w-0 flex-1 flex-col px-5 pt-3 pb-4 lg:overflow-y-auto">
 
         {/* Detection Map Title */}
-        <div className="mb-3">
+        <div className="mb-2">
           <p className="text-xs font-semibold tracking-wider text-[var(--text-muted)]">
             DETECTION MAP
           </p>
         </div>
 
         {/* Detection Map */}
-        <div className="min-h-0 flex-1">
+        <div className="shrink-0">
           <DetectionMap />
         </div>
 
         {/* Sensor Cards */}
-        <div className="mt-4 grid grid-cols-3 gap-4">
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
           {sensors.map((sensor) => (
             <SensorCard
               key={sensor.id}
               name={sensor.name}
-              signal={sensor.signal}
-              battery={sensor.battery}
               status={sensor.status}
             />
           ))}

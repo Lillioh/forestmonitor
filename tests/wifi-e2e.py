@@ -156,11 +156,13 @@ class Smoke:
             self.log = None
 
     def start_receiver(self):
+        from main import MAX_REQUEST_BODY_SIZE
         self.receiver = self.receiver_class(self.config, self.classify)
         self.server_map = {}
         self.server = self.create_server(self.create_app(self.receiver), host="127.0.0.1",
                                          port=0, map=self.server_map, threads=2,
-                                         asyncore_loop_timeout=0.1)
+                                         asyncore_loop_timeout=0.1,
+                                         max_request_body_size=MAX_REQUEST_BODY_SIZE)
         self.receiver_base = f"http://127.0.0.1:{self.server.effective_port}"
         self.thread = threading.Thread(target=self.server.run, name="smoke-waitress", daemon=True)
         self.thread.start()

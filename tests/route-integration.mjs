@@ -126,7 +126,7 @@ try {
   const observation = {
     version: 1, receiver_id: "11111111-2222-4333-8444-555555555555", sequence: 1, event_id: "1", node_id: "NODE-01",
     received_at: Date.now(), gps: { fix: true, latitude: 8.4602, longitude: 124.7004 }, kind: "audio",
-    classification: { probability: 0.91, threshold: 0.6, detected: true, model_sha256: "a".repeat(64) },
+    classification: { probability: 0.91, threshold: 0.9, detected: true, model_sha256: "a".repeat(64) },
   };
   const accepted = await request("/api/ingest", { method: "POST", origin: null, headers: ingestHeaders, body: observation });
   assert.equal(accepted.status, 201, await accepted.clone().text());

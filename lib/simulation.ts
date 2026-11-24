@@ -188,12 +188,7 @@ export function driftTelemetry(
     clampDrift(node.coreTemp ?? 25, 0.3, 20, 32).toFixed(1)
   );
 
-  const status: SensorNode["status"] =
-    battery < 15
-      ? "OFFLINE"
-      : battery < 35 || signal < 60
-        ? "DEGRADED"
-        : "ONLINE";
+  const status: SensorNode["status"] = battery < 15 ? "OFFLINE" : "ONLINE";
 
   // Each node syncs on its own independent cadence, not every tick.
   const shouldSync = liveRng() < 0.4;

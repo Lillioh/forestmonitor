@@ -43,7 +43,7 @@ function observation(overrides = {}) {
 
 function audio(overrides = {}) {
   return observation({ kind: "audio", classification: {
-    probability: 0.95, threshold: 0.6, detected: true, model_sha256: "a".repeat(64),
+    probability: 0.95, threshold: 0.9, detected: true, model_sha256: "a".repeat(64),
   }, ...overrides });
 }
 
@@ -97,22 +97,26 @@ test("ingestion rejects malformed and unexpected fields without writing anything
   assert.deepEqual(snapshot(), before);
 });
 
-test("classification requires finite scores, exact model identity and a consistent strict threshold", () => {
+test("classification requires finite scores, exact model identity and a consistent inclusive threshold", () => {
   const valid = audio();
   const malformed = [
     { ...valid, classification: undefined }, { ...valid, classification: [] },
     ...[{ probability: -0.1 }, { probability: 1.1 }, { probability: Infinity }, { probability: "0.95" },
-      { probability: true }, { threshold: -1 }, { threshold: NaN }, { threshold: "0.6" },
+      { probability: true }, { threshold: -1 }, { threshold: NaN }, { threshold: "0.9" },
       { detected: false }, { detected: "true" }, { model_sha256: "wrong" }, { model_sha256: "A".repeat(64) },
       { accuracy: 0.99 }].map((change) => ({ ...valid, classification: { ...valid.classification, ...change } })),
-    { ...valid, classification: { ...valid.classification, probability: 0.6, detected: true } },
+    { ...valid, classification: { ...valid.classification, probability: 0.9, detected: false } },
+    { ...valid, classification: { ...valid.classification, probability: 0.899, detected: true } },
   ];
   const before = snapshot();
   for (const value of malformed) failsWith(value, 400);
   assert.deepEqual(snapshot(), before);
-  const accepted = ingest(audio({ classification: { ...valid.classification, probability: 0.6, detected: false } }));
-  assert.equal(accepted.alert_id, null);
+  const below = ingest(audio({ event_id: "boot1:below-threshold", sequence: 1, classification: { ...valid.classification, probability: 0.63, detected: false } }));
+  assert.equal(below.alert_id, null);
   assert.equal(readState().alerts.length, 0);
+  const atThreshold = ingest(audio({ event_id: "boot1:at-threshold", sequence: 2, classification: { ...valid.classification, probability: 0.9, detected: true } }));
+  assert.equal(typeof atThreshold.alert_id, "string");
+  assert.equal(readState().alerts.length, 1);
 });
 
 test("true and false GPS update fix state while preserving the last known position", () => {
@@ -158,6 +162,7 @@ test("negative audio persists its classification without raising an incident", (
   assert.equal(result.alert_id, null); assert.equal(result.duplicate, false);
   const state = readState();
   assert.equal(state.alerts.length, 0); assert.equal(state.nodeEvents.length, 1);
+  assert.match(state.nodeEvents[0].details, /^NOT CHAINSAW classification:/);
   assert.deepEqual(storedSensor().lastClassification, { ...input.classification, receivedAt: input.received_at });
   const beforeReplay = snapshot();
   assert.equal(ingest(input).duplicate, true);
@@ -215,17 +220,20 @@ test("an old no-fix recording never borrows a GPS position learned after the rec
   assert.equal(storedSensor().lat, 9);
 });
 
-test("node freshness uses receiver time and distinguishes degraded from offline", () => {
+test("node freshness uses receiver time and stays online without a degraded state", () => {
   ingest(observation({ received_at: now - 86_400_000 }));
   assert.equal(storedSensor().lastSyncAt, now - 86_400_000);
   assert.equal(currentSensor(storedSensor(), now).status, "OFFLINE");
   ingest(observation({ sequence: 2, event_id: "fresh", received_at: now }));
   const fresh = storedSensor();
   assert.equal(currentSensor(fresh, now).status, "ONLINE");
-  assert.equal(currentSensor(fresh, now + 90_001).status, "DEGRADED");
+  assert.equal(currentSensor(fresh, now + 90_001).status, "ONLINE");
+  assert.equal(currentSensor(fresh, now + 180_000).status, "ONLINE");
   assert.equal(currentSensor(fresh, now + 180_001).status, "OFFLINE");
-  assert.equal(currentSensor({ ...fresh, gpsFix: false }, now).status, "DEGRADED");
+  assert.equal(currentSensor({ ...fresh, gpsFix: false }, now).status, "ONLINE");
+  assert.equal(currentSensor({ ...fresh, status: "DEGRADED" }, now).status, "ONLINE");
   assert.equal(currentSensor({ id: "legacy", status: "OFFLINE", lastSyncAt: 0 }, now).status, "OFFLINE");
+  assert.equal(currentSensor({ id: "legacy", status: "DEGRADED", lastSyncAt: 0 }, now).status, "OFFLINE");
 });
 
 test("database failure rolls back receipt, incident, sensor, event and outbox together", () => {

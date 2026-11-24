@@ -30,17 +30,17 @@ export default function Sidebar() {
       {/* Header */}
       <div
         className="
-          flex h-14 items-center px-7
+          flex h-14 items-center px-6
           border-b border-[var(--border)]
         "
       >
         <span
           className="
-            text-xs font-semibold tracking-widest
+            whitespace-nowrap text-xs font-semibold tracking-widest
             text-[var(--text-muted)]
           "
         >
-          BANTAY GUBAT
+          FOREST MONITOR
         </span>
       </div>
 

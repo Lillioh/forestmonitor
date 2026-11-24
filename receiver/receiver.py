@@ -7,12 +7,14 @@ import math
 import os
 import re
 import sqlite3
+import subprocess
 import threading
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 from flask import Flask, jsonify, request
@@ -20,7 +22,11 @@ from flask import Flask, jsonify, request
 ID = re.compile(r"^[1-9][0-9]{0,15}$")
 NODE_ID = re.compile(r"^[A-Za-z0-9._:-]{1,40}$")
 AUDIO_BYTES = 88200
-THRESHOLD = 0.60
+THRESHOLD = 0.70
+GPS_UTC = re.compile(r"^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,6}))?Z$")
+MIN_GPS_EPOCH = 1767225600.0  # 2026-01-01T00:00:00Z
+MAX_GPS_EPOCH = 4102444800.0  # 2100-01-01T00:00:00Z
+CLOCK_SYNC_MIN_STEP_SECONDS = 5.0
 
 class Invalid(Exception):
     def __init__(self, message, status=400):
@@ -52,8 +58,69 @@ def header_gps(headers):
         raise Invalid('invalid GPS coordinates') from None
 
 
+def capture_timing(headers, clock_id):
+    def microseconds(name, maximum):
+        value = headers.get(name, '')
+        if not re.fullmatch(r'[0-9]{1,16}', value) or int(value) > maximum:
+            raise Invalid(f'invalid {name}')
+        return int(value)
+
+    local_header = 'X-Audio-Start-Us'
+    clock_header = 'X-Audio-Pi-Clock-Id'
+    sync_fields = (
+        ('X-Audio-Pi-Start-Us', 'pi_first_sample_us', 9007199254740991),
+        ('X-Audio-Sync-Rtt-Us', 'round_trip_us', 100000),
+        ('X-Audio-Sync-Age-Us', 'sync_age_us', 15000000),
+    )
+    has_sync = clock_header in headers or any(name in headers for name, _, _ in sync_fields)
+    if not has_sync and local_header not in headers:
+        return None
+
+    result = {'first_sample_us': microseconds(local_header, 9007199254740991)}
+    if has_sync:
+        supplied_clock = headers.get(clock_header, '')
+        if not re.fullmatch(r'[0-9a-f]{32}', supplied_clock):
+            raise Invalid(f'invalid {clock_header}')
+        sync = {key: microseconds(name, maximum) for name, key, maximum in sync_fields}
+        if supplied_clock == clock_id:
+            result.update(clock_id=clock_id, **sync)
+    return result
+
+
 def canonical(value):
     return json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False)
+
+
+def parse_gps_utc(value):
+    if not isinstance(value, str):
+        return None
+    match = GPS_UTC.fullmatch(value.strip())
+    if not match:
+        return None
+    year, month, day, hour, minute, second = (int(part) for part in match.groups()[:6])
+    micros = int(match.group(7).ljust(6, '0')) if match.group(7) else 0
+    try:
+        epoch = datetime(year, month, day, hour, minute, second, micros, tzinfo=timezone.utc).timestamp()
+    except ValueError:
+        return None
+    if not (MIN_GPS_EPOCH <= epoch <= MAX_GPS_EPOCH):
+        return None
+    return epoch
+
+
+def _default_ntp_synced():
+    try:
+        result = subprocess.run(
+            ['timedatectl', 'show', '-p', 'NTPSynchronized', '--value'],
+            capture_output=True, text=True, timeout=2, check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return result.returncode == 0 and result.stdout.strip().lower() == 'yes'
+
+
+def _default_clock_set(epoch):
+    time.clock_settime(time.CLOCK_REALTIME, epoch)
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -81,6 +148,12 @@ class Receiver:
         self.retention = int(config.get('receipt_seconds', 7 * 86400))
         if self.capacity < 1 or self.retention < 1:
             raise ValueError('Invalid queue limits')
+        raw_threshold = config.get('threshold', THRESHOLD)
+        if isinstance(raw_threshold, bool) or not isinstance(raw_threshold, (int, float)):
+            raise ValueError('Invalid detection threshold')
+        self.threshold = float(raw_threshold)
+        if not math.isfinite(self.threshold) or not 0 < self.threshold <= 1:
+            raise ValueError('Invalid detection threshold')
         self.classifier = classifier
         self.lock = threading.Lock()
         self.stop = threading.Event()
@@ -93,6 +166,7 @@ class Receiver:
             os.chmod(path, 0o600)
         except OSError:
             pass
+        self.db.execute('PRAGMA foreign_keys=ON')
         self.db.execute('PRAGMA journal_mode=WAL')
         self.db.execute('PRAGMA synchronous=FULL')
         self.db.execute('PRAGMA max_page_count=65536')
@@ -107,11 +181,21 @@ class Receiver:
           envelope TEXT NOT NULL, delivered_at INTEGER, rejected_status INTEGER, PRIMARY KEY(node_id,event_id));
         CREATE INDEX IF NOT EXISTS pending ON events(delivered_at);
         CREATE TABLE IF NOT EXISTS node_counters (node_id TEXT PRIMARY KEY, high_water INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS audio_timing (
+          node_id TEXT NOT NULL, event_id TEXT NOT NULL, timing TEXT NOT NULL,
+          PRIMARY KEY(node_id,event_id),
+          FOREIGN KEY(node_id,event_id) REFERENCES events(node_id,event_id) ON DELETE CASCADE);
         PRAGMA user_version=1;''')
         self.db.execute("INSERT OR IGNORE INTO meta VALUES ('receiver_id', ?)", (str(uuid.uuid4()),))
         self.db.execute("INSERT OR IGNORE INTO meta VALUES ('sequence', '0')")
         self.receiver_id = self.db.execute("SELECT value FROM meta WHERE key='receiver_id'").fetchone()[0]
+        self.clock_id = uuid.uuid4().hex
         self.worker = None
+        self.gps_clock_sync = bool(config.get('gps_clock_sync', False))
+        self._clock_now = config.get('clock_now', time.time)
+        self._clock_set = config.get('clock_set', _default_clock_set)
+        self._ntp_synced = config.get('ntp_synced', _default_ntp_synced)
+        self._clock_sync_failed = False
 
     def authenticate(self, alias, auth):
         node = self.registry.get(alias) if isinstance(alias, str) else None
@@ -122,54 +206,99 @@ class Receiver:
             raise Invalid('unauthorized', 401)
         return node['id']
 
-    def accept(self, node, event_id, kind, position, audio=None):
+    def _maybe_sync_clock(self, node, gps_utc):
+        if not self.gps_clock_sync or not gps_utc:
+            return False
+        gps_epoch = parse_gps_utc(gps_utc)
+        if gps_epoch is None:
+            return False
+        delta = gps_epoch - self._clock_now()
+        if delta < CLOCK_SYNC_MIN_STEP_SECONDS:
+            if delta <= -60.0:
+                logging.warning('Pi clock is %.1fs ahead of node %s GPS UTC (%s); refusing backward step', -delta, node, gps_utc)
+            return False
+        if self._clock_sync_failed:
+            return False
+        if self._ntp_synced():
+            logging.warning('Skipping GPS clock step of +%.1fs because NTP reports synchronized', delta)
+            return False
+        try:
+            self._clock_set(gps_epoch)
+        except (AttributeError, PermissionError, OSError) as exc:
+            self._clock_sync_failed = True
+            logging.warning('Unable to adjust Pi clock from GPS UTC (%s); add AmbientCapabilities=CAP_SYS_TIME to forest-receiver.service', type(exc).__name__)
+            return False
+        logging.info('Adjusted Pi clock forward by %.1fs from node %s GPS UTC (%s)', delta, node, gps_utc)
+        return True
+
+    def _check_admission(self, node, event_id, digest, now):
+        row = self.db.execute('SELECT digest,envelope FROM events WHERE node_id=? AND event_id=?', (node, event_id)).fetchone()
+        if row:
+            if not hmac.compare_digest(row[0], digest):
+                raise Invalid('event ID reused with different content', 409)
+            return json.loads(row[1])
+        watermark = self.db.execute('SELECT high_water FROM node_counters WHERE node_id=?', (node,)).fetchone()
+        if watermark and int(event_id) <= watermark[0]:
+            raise Invalid('expired or out-of-order event counter', 409)
+        self.db.execute('DELETE FROM events WHERE delivered_at IS NOT NULL AND delivered_at < ?', (now - self.retention * 1000,))
+        if self.db.execute('SELECT COUNT(*) FROM events').fetchone()[0] >= self.capacity:
+            raise Invalid('receiver queue full', 503)
+        return None
+
+    def _commit_event(self, node, event_id, digest, now, position, kind, classification, timing=None):
+        self.db.execute('BEGIN IMMEDIATE')
+        try:
+            seq = int(self.db.execute("SELECT value FROM meta WHERE key='sequence'").fetchone()[0]) + 1
+            if seq > 9007199254740991:
+                raise RuntimeError('receiver sequence exhausted')
+            envelope = {'version': 1, 'receiver_id': self.receiver_id, 'sequence': seq, 'event_id': event_id,
+                'node_id': node, 'received_at': now, 'gps': position, 'kind': kind}
+            if classification is not None:
+                envelope['classification'] = classification
+            self.db.execute("UPDATE meta SET value=? WHERE key='sequence'", (str(seq),))
+            self.db.execute('INSERT INTO node_counters VALUES (?,?) ON CONFLICT(node_id) DO UPDATE SET high_water=excluded.high_water', (node, int(event_id)))
+            self.db.execute('INSERT INTO events(node_id,event_id,digest,envelope) VALUES (?,?,?,?)', (node, event_id, digest, canonical(envelope)))
+            if timing is not None:
+                self.db.execute('INSERT INTO audio_timing(node_id,event_id,timing) VALUES (?,?,?)',
+                                (node, event_id, canonical(timing)))
+            self.db.execute('COMMIT')
+            return envelope
+        except BaseException:
+            try:
+                self.db.execute('ROLLBACK')
+            except sqlite3.Error:
+                pass  # SQLite can automatically roll back on a full disk.
+            raise
+
+    def accept(self, node, event_id, kind, position, audio=None, gps_utc=None, timing=None):
         if not isinstance(event_id, str) or not ID.fullmatch(event_id) or int(event_id) > 9007199254740991:
             raise Invalid('X-Event-ID must be a positive decimal counter')
         raw_digest = hashlib.sha256(audio or b'').hexdigest()
         digest = hashlib.sha256(canonical({'kind': kind, 'gps': position, 'audio_sha256': raw_digest}).encode()).hexdigest()
         with self.lock:
-            row = self.db.execute('SELECT digest,envelope FROM events WHERE node_id=? AND event_id=?', (node, event_id)).fetchone()
-            if row:
-                if not hmac.compare_digest(row[0], digest):
-                    raise Invalid('event ID reused with different content', 409)
-                return json.loads(row[1])
-            watermark = self.db.execute('SELECT high_water FROM node_counters WHERE node_id=?', (node,)).fetchone()
-            if watermark and int(event_id) <= watermark[0]:
-                raise Invalid('expired or out-of-order event counter', 409)
-            now = int(time.time() * 1000)
-            self.db.execute('DELETE FROM events WHERE delivered_at IS NOT NULL AND delivered_at < ?', (now - self.retention * 1000,))
-            if self.db.execute('SELECT COUNT(*) FROM events').fetchone()[0] >= self.capacity:
-                raise Invalid('receiver queue full', 503)
-            classification = None
-            if kind == 'audio':
-                try:
-                    probability, model_hash = self.classifier(audio)
-                    probability = float(probability)
-                    if not math.isfinite(probability) or not 0 <= probability <= 1 or not re.fullmatch(r'[0-9a-f]{64}', model_hash):
-                        raise ValueError('invalid classifier output')
-                    classification = {'probability': probability, 'threshold': THRESHOLD, 'detected': probability > THRESHOLD, 'model_sha256': model_hash}
-                except Exception as exc:
-                    logging.warning('Classifier unavailable (%s)', type(exc).__name__)
-                    raise Invalid('classifier unavailable', 503) from exc
-            self.db.execute('BEGIN IMMEDIATE')
-            try:
-                seq = int(self.db.execute("SELECT value FROM meta WHERE key='sequence'").fetchone()[0]) + 1
-                if seq > 9007199254740991:
-                    raise RuntimeError('receiver sequence exhausted')
-                envelope = {'version': 1, 'receiver_id': self.receiver_id, 'sequence': seq, 'event_id': event_id,
-                    'node_id': node, 'received_at': now, 'gps': position, 'kind': kind}
-                if classification is not None:
-                    envelope['classification'] = classification
-                self.db.execute("UPDATE meta SET value=? WHERE key='sequence'", (str(seq),))
-                self.db.execute('INSERT INTO node_counters VALUES (?,?) ON CONFLICT(node_id) DO UPDATE SET high_water=excluded.high_water', (node, int(event_id)))
-                self.db.execute('INSERT INTO events(node_id,event_id,digest,envelope) VALUES (?,?,?,?)', (node, event_id, digest, canonical(envelope)))
-                self.db.execute('COMMIT')
-            except BaseException:
-                try:
-                    self.db.execute('ROLLBACK')
-                except sqlite3.Error:
-                    pass  # SQLite can automatically roll back on a full disk.
-                raise
+            self._maybe_sync_clock(node, gps_utc)
+            now = int(self._clock_now() * 1000)
+            existing = self._check_admission(node, event_id, digest, now)
+            if existing is not None:
+                return existing
+            if kind != 'audio':
+                envelope = self._commit_event(node, event_id, digest, now, position, kind, None)
+                self.wake.set()
+                return envelope
+        try:
+            probability, model_hash = self.classifier(audio)
+            probability = float(probability)
+            if not math.isfinite(probability) or not 0 <= probability <= 1 or not re.fullmatch(r'[0-9a-f]{64}', model_hash):
+                raise ValueError('invalid classifier output')
+            classification = {'probability': probability, 'threshold': self.threshold, 'detected': probability >= self.threshold, 'model_sha256': model_hash}
+        except Exception as exc:
+            logging.warning('Classifier unavailable (%s)', type(exc).__name__)
+            raise Invalid('classifier unavailable', 503) from exc
+        with self.lock:
+            existing = self._check_admission(node, event_id, digest, now)
+            if existing is not None:
+                return existing
+            envelope = self._commit_event(node, event_id, digest, now, position, kind, classification, timing)
         self.wake.set()
         return envelope
 
@@ -238,6 +367,18 @@ def create_app(receiver):
         app.logger.error('Receiver storage unavailable: %s', type(error).__name__)
         return jsonify(error='receiver storage unavailable'), 503
 
+    @app.get('/clock')
+    def clock():
+        received_us = time.monotonic_ns() // 1000
+        receiver.authenticate(request.headers.get('X-Node-ID'), request.headers.get('Authorization', ''))
+        response = app.response_class(status=204, headers={
+            'Cache-Control': 'no-store',
+            'X-Pi-Clock-Id': receiver.clock_id,
+            'X-Pi-Receive-Us': str(received_us),
+        })
+        response.headers['X-Pi-Send-Us'] = str(time.monotonic_ns() // 1000)
+        return response
+
     @app.post('/location')
     def location():
         # Node ID is in the bounded body for the existing location protocol.
@@ -255,7 +396,7 @@ def create_app(receiver):
         if header_id is not None and body_id is not None and header_id != body_id:
             raise Invalid('conflicting event IDs')
         event_id = header_id if header_id is not None else body_id
-        result = receiver.accept(node, event_id, 'location', gps(data.get('gps_fix'), data.get('latitude'), data.get('longitude')))
+        result = receiver.accept(node, event_id, 'location', gps(data.get('gps_fix'), data.get('latitude'), data.get('longitude')), gps_utc=request.headers.get('X-GPS-UTC'))
         return jsonify(accepted=True, event_id=result['event_id']), 200
 
     @app.post('/upload')
@@ -264,17 +405,19 @@ def create_app(receiver):
         if request.headers.get('X-Sample-Rate', '22050') != '22050':
             raise Invalid('expected sample rate 22050')
         position = header_gps(request.headers)
+        timing = capture_timing(request.headers, receiver.clock_id)
         event_id = request.headers.get('X-Event-ID')
         if request.content_length != AUDIO_BYTES:
             raise Invalid('audio must contain exactly 88200 bytes')
         audio = request.get_data(cache=False)
         if len(audio) != AUDIO_BYTES:
             raise Invalid('audio must contain exactly 88200 bytes')
-        result = receiver.accept(node, event_id, 'audio', position, audio)
+        result = receiver.accept(node, event_id, 'audio', position, audio,
+                                 gps_utc=request.headers.get('X-GPS-UTC'), timing=timing)
         c = result['classification']
         return jsonify(status='success', accepted=True, event_id=result['event_id'], node_id=node,
                        chainsaw_probability=c['probability'],
                        confidence=round(c['probability'] * 100, 2),
-                       result='CHAINSAW DETECTED' if c['detected'] else 'BACKGROUND NOISE', **c), 200
+                       result='CHAINSAW DETECTED' if c['detected'] else 'NOT CHAINSAW', **c), 200
 
     return app

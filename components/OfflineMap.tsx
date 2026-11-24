@@ -76,7 +76,7 @@ export default function OfflineMap() {
         map.addLayer({ id: "triangle-line", type: "line", source: "triangle", paint: { "line-color": "#71b785", "line-width": 2, "line-dasharray": [3, 2] } });
         map.addLayer({ id: "uncertainty-fill", type: "fill", source: "areas", paint: { "fill-color": "#e95b47", "fill-opacity": 0.2 } });
         map.addLayer({ id: "uncertainty-line", type: "line", source: "areas", paint: { "line-color": "#e95b47", "line-width": 1.5 } });
-        map.addLayer({ id: "sensor-points", type: "circle", source: "nodes", paint: { "circle-radius": 7, "circle-color": ["match", ["get", "status"], "ONLINE", "#62af7b", "DEGRADED", "#e6a52d", "#8b9890"], "circle-stroke-color": "#fff", "circle-stroke-width": 2 } });
+        map.addLayer({ id: "sensor-points", type: "circle", source: "nodes", paint: { "circle-radius": 7, "circle-color": ["match", ["get", "status"], "ONLINE", "#62af7b", "#8b9890"], "circle-stroke-color": "#fff", "circle-stroke-width": 2 } });
         map.addLayer({ id: "sensor-labels", type: "symbol", source: "nodes", layout: { ...labels, "text-field": ["get", "name"], "text-allow-overlap": true }, paint: { "text-color": "#263d2d", "text-halo-color": "#ffffff", "text-halo-width": 2 } });
         map.addLayer({ id: "detection-points", type: "circle", source: "detections", paint: { "circle-radius": 6, "circle-color": "#e95b47", "circle-stroke-color": "#fff", "circle-stroke-width": 2 } });
         map.addLayer({ id: "detection-labels", type: "symbol", source: "detections", layout: { ...labels, "text-field": ["get", "code"] }, paint: { "text-color": "#932e23", "text-halo-color": "#ffffff", "text-halo-width": 2 } });
@@ -115,7 +115,7 @@ export default function OfflineMap() {
         <span className="font-semibold">Geographic detection map</span>
         <button disabled={!ready} onClick={() => { const bounds = new maplibregl.LngLatBounds(); sensors.forEach((node) => bounds.extend([node.lng, node.lat])); if (sensors.length) mapRef.current?.fitBounds(bounds, { padding: 85, maxZoom: 17 }); }} className="rounded border border-[var(--border)] px-2 py-1 disabled:opacity-40">Fit sensors</button>
       </div>
-      <div ref={container} className={unavailable ? "hidden" : "h-[500px] w-full"} aria-label="Offline geographic map of the sensor area" />
+      <div ref={container} className={unavailable ? "hidden" : "h-[560px] w-full"} aria-label="Offline geographic map of the sensor area" />
       {!info && !error && <p className="px-4 py-2 text-xs text-[var(--text-muted)]">Reading local map package…</p>}
       {info?.available && !error && <p className="px-4 py-2 text-[10px] text-[var(--text-muted)]">Local basemap · OSM data {info.dataDate?.slice(0, 10)} · {((info.bytes ?? 0) / 1048576).toFixed(1)} MB · Geographic features depend on available mapping data.</p>}
     </div>
